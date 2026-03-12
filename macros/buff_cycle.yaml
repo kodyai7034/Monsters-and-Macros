@@ -1,0 +1,25 @@
+# Buff rebuff macro
+# Periodically refreshes buffs on a timer
+
+name: "Buff Cycle"
+description: "Refreshes buffs every 5 minutes"
+loop_delay: 300.0  # 5 minutes between cycles
+
+actions:
+  - action: log
+    message: "Refreshing buffs..."
+
+  - action: use_ability
+    slot: 6
+    delay: 2.0
+
+  - action: use_ability
+    slot: 7
+    delay: 2.0
+
+  - action: use_ability
+    slot: 8
+    delay: 2.0
+
+  - action: log
+    message: "Buffs refreshed, waiting 5 minutes..."

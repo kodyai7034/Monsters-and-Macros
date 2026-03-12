@@ -1,0 +1,69 @@
+# Grinding loop macro
+# Moves in a pattern, finds targets, fights, regens, repeats
+
+name: "Grind Loop"
+description: "Automated grinding: patrol, fight, regen, repeat"
+loop_delay: 1.0
+
+actions:
+  # Move forward to find mobs
+  - action: move_forward
+    duration: 3.0
+
+  # Look around (slight turn)
+  - action: turn
+    dx: 45
+    duration: 0.3
+
+  # Try to target something
+  - action: target_nearest
+    delay: 0.5
+
+  # Attack rotation
+  - action: repeat
+    times: 5
+    actions:
+      - action: use_ability
+        slot: 1
+        delay: 0.8
+      - action: use_ability
+        slot: 2
+        delay: 0.8
+
+      # Emergency heal check
+      - action: condition
+        check: health_below
+        value: 0.3
+        then:
+          - action: use_ability
+            slot: 5
+            delay: 1.0
+
+  # Post-combat: check if we need to regen
+  - action: condition
+    check: health_below
+    value: 0.7
+    then:
+      - action: sit
+      - action: wait_for_health
+        above: 0.9
+        timeout: 30
+        interval: 1.0
+
+  - action: condition
+    check: mana_below
+    value: 0.5
+    then:
+      - action: sit
+      - action: wait_for_mana
+        above: 0.8
+        timeout: 45
+        interval: 1.0
+
+  # Turn to patrol new direction
+  - action: turn
+    dx: 90
+    duration: 0.5
+
+  - action: wait
+    duration: 1.0

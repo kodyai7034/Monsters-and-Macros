@@ -1,0 +1,67 @@
+# Monsters and Memories Macro Configuration
+
+general:
+  game_window_title: "Monsters and Memories"
+  default_delay: 0.05          # Default delay between actions (seconds)
+  failsafe: true               # Move mouse to corner to abort
+  failsafe_key: "f12"          # Emergency stop hotkey
+
+input:
+  method: "directinput"        # "directinput" or "winmessage"
+  hold_duration: 0.05          # How long to hold a key press
+
+# Anti-detection humanization settings
+# The game uses InputPatternDetector and BotBehaviorDetector
+humanizer:
+  enabled: true
+  intensity: 0.5               # 0.0 = minimal, 1.0 = maximum randomization
+  # Game anti-bot thresholds (extracted from game code):
+  #   RAPID_CLICK_WINDOW: 0.3s
+  #   RAPID_CLICK_THRESHOLD: 3 clicks
+  #   ABILITY_PRESS_WINDOW: 1.5s
+  #   DRAG_INTENTION_SQR_DISTANCE: 2.99
+  #   DRAG_INTENTION_MAX_SECONDS: 1.0
+
+# MnM keybindings (update to match your in-game settings)
+keybinds:
+  move_forward: "w"
+  move_backward: "s"
+  strafe_left: "a"
+  strafe_right: "d"
+  jump: "space"
+  auto_run: "numlock"
+  sit: "x"
+  # Ability bar keys (slots 1-10)
+  ability_1: "1"
+  ability_2: "2"
+  ability_3: "3"
+  ability_4: "4"
+  ability_5: "5"
+  ability_6: "6"
+  ability_7: "7"
+  ability_8: "8"
+  ability_9: "9"
+  ability_10: "0"
+  # Targeting
+  target_nearest: "tab"
+  # Chat
+  chat_open: "enter"
+  # Inventory
+  inventory: "i"
+
+recording:
+  save_directory: "recordings"
+  capture_mouse: true
+  capture_keyboard: true
+
+screen:
+  # Health bar region (x, y, width, height) - configure after setup
+  health_bar: [0, 0, 200, 20]
+  # Mana bar region
+  mana_bar: [0, 0, 200, 20]
+  # Health bar color (RGB) when full
+  health_color: [0, 200, 0]
+  # Mana bar color (RGB) when full
+  mana_color: [0, 0, 200]
+  # Color tolerance for matching
+  color_tolerance: 30

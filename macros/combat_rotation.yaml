@@ -1,0 +1,49 @@
+# Basic combat rotation macro
+# Targets nearest enemy, uses abilities in order, checks health
+
+name: "Combat Rotation"
+description: "Basic combat loop: target, attack, heal if low"
+loop_delay: 0.3
+
+actions:
+  # Target nearest enemy
+  - action: target_nearest
+    delay: 0.3
+
+  # Main damage rotation
+  - action: use_ability
+    slot: 1
+    delay: 0.5
+
+  - action: use_ability
+    slot: 2
+    delay: 0.5
+
+  - action: use_ability
+    slot: 3
+    delay: 0.5
+
+  # Check health - heal if below 50%
+  - action: condition
+    check: health_below
+    value: 0.5
+    then:
+      - action: use_ability
+        slot: 5
+        delay: 1.0
+      - action: log
+        message: "Used heal (health < 50%)"
+
+  # Check mana - sit and regen if below 20%
+  - action: condition
+    check: mana_below
+    value: 0.2
+    then:
+      - action: sit
+      - action: wait
+        duration: 10.0
+      - action: log
+        message: "Sitting to regen mana"
+
+  - action: wait
+    duration: 0.5
