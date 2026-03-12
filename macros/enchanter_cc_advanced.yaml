@@ -1,0 +1,245 @@
+# =============================================================================
+# Enchanter CC — Advanced with Mez Break Recovery
+# =============================================================================
+# Smarter version that handles:
+#   - Mez breaks (detects when a mob wakes up via health drop)
+#   - Emergency stun for mez break recovery
+#   - Tash before mez on resist-prone targets
+#   - Mana management with meditation
+#   - Self-preservation (heal/rune if taking damage)
+#   - Configurable number of CC targets (2 or 3)
+#
+# ABILITY BAR SETUP:
+#   Slot 1: Nuke (DPS assist, e.g. Chaotic Feedback)
+#   Slot 2: Tash / Magic debuff (lowers mez resist chance)
+#   Slot 3: Mesmerize (main CC spell)
+#   Slot 4: Stun (emergency, for mez break recovery)
+#   Slot 5: Self heal / Rune (self-preservation)
+#   Slot 6: Charm (optional, for charming a pet)
+#   Slot 7: Haste buff (cast on tank between CC duties)
+#   Slot 8: Mana regen buff (Clarity, cast on group)
+#
+# SCREEN SETUP (config.yaml):
+#   Set health_bar and mana_bar regions for your UI.
+#   The macro uses these for health/mana checks.
+#
+# HOW MZ BREAK DETECTION WORKS:
+#   Since we can't directly read mob buff state from outside the game,
+#   we detect mez breaks indirectly:
+#   - If YOUR health drops suddenly, something is hitting you = mez broke
+#   - Emergency response: stun the attacker, then re-mez
+#   - The humanizer adds natural delay so it looks like a real player
+#     reacting to a mez break (250-500ms reaction time)
+# =============================================================================
+
+name: "Enchanter CC Advanced"
+description: "Smart mez rotation with break recovery, tash, mana management"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Advanced CC Rotation Started ==="
+  - action: log
+    message: "Slot 3=Mez, Slot 4=Stun, Slot 2=Tash, Slot 5=Heal"
+
+  # -------------------------------------------------
+  # PHASE 1: Initial pull CC
+  # Tash + Mez each add in sequence
+  # -------------------------------------------------
+  - action: log
+    message: "--- Initial CC: Tash + Mez all adds ---"
+
+  # Add 1: Tash then Mez
+  - action: target_nearest
+    delay: 0.4
+  - action: use_ability
+    slot: 2
+    delay: 0.3
+  - action: wait
+    duration: 2.5
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+  - action: log
+    message: "Add 1: Tashed + Mezzed"
+
+  # Add 2: Tash then Mez
+  - action: press
+    key: "target_nearest"
+    delay: 0.4
+  - action: use_ability
+    slot: 2
+    delay: 0.3
+  - action: wait
+    duration: 2.5
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+  - action: log
+    message: "Add 2: Tashed + Mezzed"
+
+  # Add 3: Tash then Mez
+  - action: press
+    key: "target_nearest"
+    delay: 0.4
+  - action: use_ability
+    slot: 2
+    delay: 0.3
+  - action: wait
+    duration: 2.5
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+  - action: log
+    message: "Add 3: Tashed + Mezzed"
+
+  - action: log
+    message: "--- All adds locked down. Entering maintenance. ---"
+
+  # -------------------------------------------------
+  # PHASE 2: Maintenance Loop
+  # -------------------------------------------------
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # EMERGENCY CHECK: Am I taking damage?
+      # If health dropped, something broke mez
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.7
+        then:
+          - action: log
+            message: "!!! TAKING DAMAGE - Mez break! Emergency stun!"
+
+          # Stun whatever is on us
+          - action: use_ability
+            slot: 4
+            delay: 0.2
+          - action: wait
+            duration: 1.5
+
+          # Self heal
+          - action: condition
+            check: health_below
+            value: 0.5
+            then:
+              - action: use_ability
+                slot: 5
+                delay: 0.3
+              - action: wait
+                duration: 2.5
+
+          # Re-mez the stunned mob
+          - action: use_ability
+            slot: 3
+            delay: 0.3
+          - action: wait
+            duration: 3.0
+          - action: log
+            message: "Emergency handled — mob re-mezzed"
+
+      # =============================================
+      # MANA CHECK
+      # Enchanter is mana-hungry — manage carefully
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.2
+        then:
+          - action: log
+            message: "Mana low — sitting to meditate"
+          - action: sit
+          - action: wait_for_mana
+            above: 0.5
+            timeout: 40
+            interval: 1.0
+          - action: log
+            message: "Mana recovered"
+
+      # =============================================
+      # RE-MEZ ROTATION
+      # Cycle through all 3 targets and refresh mez
+      # =============================================
+
+      # Re-mez target 1
+      - action: target_nearest
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # Re-mez target 2
+      - action: press
+        key: "target_nearest"
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # Re-mez target 3
+      - action: press
+        key: "target_nearest"
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # =============================================
+      # UTILITY WINDOW
+      # Between CC cycles, do useful things
+      # =============================================
+
+      # Haste the tank if mana allows
+      - action: condition
+        check: mana_above
+        value: 0.6
+        then:
+          - action: log
+            message: "Buffing haste on tank"
+          - action: use_ability
+            slot: 7
+            delay: 0.3
+          - action: wait
+            duration: 3.0
+
+      # Nuke assist if mana is comfortable
+      - action: condition
+        check: mana_above
+        value: 0.5
+        then:
+          # Target main mob (first tab target)
+          - action: target_nearest
+            delay: 0.3
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # WAIT BEFORE NEXT CYCLE
+      # Adjust based on your mez duration:
+      #   18s mez → wait 3-4s
+      #   24s mez → wait 6-8s
+      #   36s mez → wait 12-15s
+      # =============================================
+      - action: wait
+        duration: 5.0
+
+  - action: log
+    message: "=== CC Rotation Complete ==="

@@ -1,0 +1,126 @@
+# =============================================================================
+# Enchanter CC — Simple 2-Target Mez
+# =============================================================================
+# Lighter version for smaller pulls or when learning.
+# Keeps 2 mobs mezzed while you assist with DPS.
+#
+# ABILITY BAR:
+#   Slot 1: Nuke
+#   Slot 3: Mesmerize
+#   Slot 4: Stun (emergency)
+#   Slot 5: Self heal
+#
+# Simpler than the 3-target version:
+#   - Less mana pressure
+#   - More DPS assist time
+#   - Easier to recover from breaks
+# =============================================================================
+
+name: "Enchanter CC (2 Target)"
+description: "Keep 2 mobs mezzed, assist DPS between cycles"
+loop_delay: 0.5
+
+actions:
+  - action: log
+    message: "=== 2-Target CC Started ==="
+
+  # Initial mez both adds
+  - action: target_nearest
+    delay: 0.4
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  - action: press
+    key: "target_nearest"
+    delay: 0.4
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  - action: log
+    message: "Both adds mezzed"
+
+  # Maintenance loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # Emergency: health check
+      - action: condition
+        check: health_below
+        value: 0.6
+        then:
+          - action: log
+            message: "!!! Mez break — stunning + re-mezzing"
+          - action: use_ability
+            slot: 4
+            delay: 0.2
+          - action: wait
+            duration: 1.5
+          - action: use_ability
+            slot: 5
+            delay: 0.3
+          - action: wait
+            duration: 2.0
+          - action: use_ability
+            slot: 3
+            delay: 0.3
+          - action: wait
+            duration: 3.0
+
+      # Mana check
+      - action: condition
+        check: mana_below
+        value: 0.2
+        then:
+          - action: sit
+          - action: wait_for_mana
+            above: 0.5
+            timeout: 30
+            interval: 1.0
+
+      # Re-mez target 1
+      - action: target_nearest
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # Re-mez target 2
+      - action: press
+        key: "target_nearest"
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # DPS assist window (more time with only 2 targets)
+      - action: condition
+        check: mana_above
+        value: 0.4
+        then:
+          - action: target_nearest
+            delay: 0.3
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # Wait before next cycle
+      - action: wait
+        duration: 7.0

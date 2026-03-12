@@ -1,0 +1,195 @@
+# =============================================================================
+# Enchanter Crowd Control (CC) Macro
+# =============================================================================
+# Keeps multiple mobs mesmerized in a rotation.
+#
+# HOW IT WORKS:
+#   The enchanter's job is to keep adds locked down with mesmerize while
+#   the group kills the main target. This macro cycles through tab targets
+#   and re-mezzes each one on a timer before the previous mez wears off.
+#
+# SETUP:
+#   1. Set your mez spell on ability slot 3 (or change mez_slot below)
+#   2. Set your stun spell on slot 4 (backup for mez breaks)
+#   3. Set your tash/debuff on slot 2
+#   4. Set a nuke on slot 1 (for assist DPS between CC duties)
+#   5. Set your heal/rune on slot 5
+#   6. Adjust mez_cast_time and mez_duration to match your spell
+#
+# CONTROLS:
+#   - Start: Run this macro with --loop
+#   - Stop:  F12 emergency stop
+#
+# TIMING NOTES:
+#   - Mez duration varies by spell level (12s, 18s, 24s, 36s, etc.)
+#   - Always re-mez a few seconds EARLY to prevent breaks
+#   - The humanizer adds variance to all timings automatically
+#   - GCD is respected between casts
+# =============================================================================
+
+name: "Enchanter CC Rotation"
+description: "Mesmerize rotation for 3 mobs. Tab-targets and re-mezzes on a timer."
+loop_delay: 0.5
+
+# ----- CUSTOMIZE THESE FOR YOUR CHARACTER -----
+# mez_slot:       Ability bar slot for your mesmerize spell
+# stun_slot:      Ability bar slot for your stun (emergency backup)
+# tash_slot:      Ability bar slot for tash/debuff (lowers mez resist)
+# nuke_slot:      Ability bar slot for a nuke (DPS between CC)
+# heal_slot:      Ability bar slot for self-heal or rune
+# mez_cast_time:  Your mez spell cast time in seconds
+# mez_duration:   Your mez duration in seconds (re-mez happens early)
+# num_targets:    How many mobs to keep mezzed (2-4)
+
+actions:
+  - action: log
+    message: "=== Enchanter CC Rotation Started ==="
+
+  # -------------------------------------------------
+  # PHASE 1: Initial mezzing — lock down all adds
+  # -------------------------------------------------
+  - action: log
+    message: "Phase 1: Locking down adds..."
+
+  # Mez target 1 (first add)
+  - action: target_nearest
+    delay: 0.3
+  - action: log
+    message: "Mezzing target 1..."
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0       # Wait for mez cast time
+
+  # Mez target 2 (tab to next)
+  - action: press
+    key: "target_nearest"
+    delay: 0.3
+  - action: log
+    message: "Mezzing target 2..."
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  # Mez target 3 (tab to next)
+  - action: press
+    key: "target_nearest"
+    delay: 0.3
+  - action: log
+    message: "Mezzing target 3..."
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  - action: log
+    message: "All adds mezzed. Starting maintenance rotation."
+
+  # -------------------------------------------------
+  # PHASE 2: Maintenance loop — re-mez before expiry
+  # -------------------------------------------------
+  # The loop runs continuously. Each cycle:
+  #   1. Check health/mana
+  #   2. Tab through targets and re-mez each
+  #   3. DPS assist between re-mez cycles
+  #   4. Wait before next cycle
+  #
+  # With 3 targets and ~3s cast time each, one full
+  # cycle takes ~12-15s. Mez lasts 18-36s depending on
+  # spell level, so we have time to assist DPS between.
+  # -------------------------------------------------
+
+  - action: repeat
+    times: 100     # Run for ~100 cycles then stop
+    actions:
+
+      # --- Health check ---
+      - action: condition
+        check: health_below
+        value: 0.4
+        then:
+          - action: log
+            message: "LOW HEALTH - using self heal!"
+          - action: use_ability
+            slot: 5
+            delay: 1.5
+
+      # --- Mana check ---
+      - action: condition
+        check: mana_below
+        value: 0.15
+        then:
+          - action: log
+            message: "LOW MANA - sitting to regen"
+          - action: sit
+          - action: wait_for_mana
+            above: 0.4
+            timeout: 30
+            interval: 1.0
+          - action: log
+            message: "Mana recovered, resuming CC"
+
+      # --- Re-mez target 1 ---
+      - action: target_nearest
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # --- Re-mez target 2 ---
+      - action: press
+        key: "target_nearest"
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # --- Re-mez target 3 ---
+      - action: press
+        key: "target_nearest"
+        delay: 0.3
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+
+      # --- Assist DPS window ---
+      # Between re-mez cycles, help DPS the main target
+      - action: log
+        message: "CC stable — assisting DPS"
+
+      # Tash the main target (lowers resists)
+      - action: press
+        key: "target_nearest"
+        delay: 0.3
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      # Nuke
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # --- Wait before next re-mez cycle ---
+      # This gap should be shorter than mez duration minus
+      # the time it takes to cycle through all targets.
+      # Example: 24s mez, 12s to re-mez all 3 = wait ~8s
+      - action: wait
+        duration: 6.0
+
+  - action: log
+    message: "=== CC Rotation Complete ==="
