@@ -20,7 +20,8 @@ except ImportError:
 
 from memory_reader import (
     EntityOff, ClientOff, EntityBuffsOff, BuffRecordOff, IL2CPP,
-    TargetHandlerOff, CLIENT_TYPEINFO_RVA,
+    TargetHandlerOff, AntiTamperVector3Off, AntiTamperFloatOff,
+    CLIENT_TYPEINFO_RVA,
 )
 
 
@@ -216,6 +217,20 @@ def probe_entity(pm, label, entity_ptr):
     probe_bool(pm, "Entity.autoattacking", entity_ptr, EntityOff.AUTOATTACKING)
     probe_int(pm, "Entity.CurrentPosture", entity_ptr, EntityOff.POSTURE)
 
+    # Position (AntiTamperVector3)
+    vec_ptr = probe_ptr(pm, "Entity._localInterpolatedServerPos", entity_ptr, EntityOff.POSITION, expect_nonzero=False)
+    if vec_ptr:
+        for axis_name, axis_off in [("X", AntiTamperVector3Off.X), ("Y", AntiTamperVector3Off.Y), ("Z", AntiTamperVector3Off.Z)]:
+            atf_ptr = read_ptr(pm, vec_ptr + axis_off)
+            if atf_ptr:
+                try:
+                    val = pm.read_float(atf_ptr + AntiTamperFloatOff.PRIMARY)
+                    print(f"  [{PASS}] {'Position.' + axis_name:<40} @ 0x{atf_ptr + AntiTamperFloatOff.PRIMARY:X}  =>  {val:.2f}")
+                except Exception:
+                    print(f"  [{FAIL}] {'Position.' + axis_name:<40} @ 0x{atf_ptr + AntiTamperFloatOff.PRIMARY:X}  =>  read error")
+            else:
+                print(f"  [{FAIL}] {'AntiTamperFloat._' + axis_name.lower():<40} @ 0x{vec_ptr + axis_off:X}  =>  NULL")
+
 
 def probe_client_fields(pm, mine_ptr):
     """Probe Client-specific fields beyond Entity base."""
@@ -384,6 +399,52 @@ def probe_string_sanity(pm, mine_ptr):
                 print(f"    0x{off:03X}: (raw value: 0x{val:X} / {val})")
 
 
+def probe_all_strings(pm, entity_ptr):
+    """Scan all 8-byte-aligned offsets on the Client object for IL2CPP strings.
+
+    This helps discover unmapped fields like zone name.
+    Scans from 0x100 to 0x600 (Client extends Entity, fields go up to ~0x4D8+).
+    """
+    section("String Scan (all string-like fields on Client object)")
+    print(f"  Scanning 0x100..0x600 on entity @ 0x{entity_ptr:X}")
+    print(f"  Looking for valid Il2CppString pointers...\n")
+
+    found = 0
+    for offset in range(0x100, 0x600, 0x8):
+        ptr = read_ptr(pm, entity_ptr + offset)
+        if not ptr or ptr < 0x10000:
+            continue
+
+        # Check if this looks like an IL2CPP string:
+        # - Il2CppString has a class pointer at 0x0, length at 0x10, chars at 0x14
+        try:
+            length = pm.read_int(ptr + IL2CPP.STRING_LENGTH)
+        except Exception:
+            continue
+
+        if length <= 0 or length > 256:
+            continue
+
+        try:
+            raw = pm.read_bytes(ptr + IL2CPP.STRING_CHARS, length * 2)
+            text = raw.decode("utf-16-le", errors="replace")
+        except Exception:
+            continue
+
+        # Filter: must be printable ASCII-ish
+        if not text or not all(c.isprintable() or c == ' ' for c in text):
+            continue
+
+        print(f"  0x{offset:03X}  =>  \"{text}\"")
+        found += 1
+
+    if found == 0:
+        print(f"  (no valid strings found in scan range)")
+    else:
+        print(f"\n  Found {found} string fields.")
+    print(f"  Look for zone-related strings (e.g. 'Night Harbor', 'NightHarbor', etc.)")
+
+
 # =========================================================================
 # Main
 # =========================================================================
@@ -442,6 +503,9 @@ def main():
         section("Target")
         print(f"  [{'--':^4}] No target selected — target probes skipped")
         print(f"  Tab-target something in game and re-run to test target chain")
+
+    # Step 10: Scan for all string fields on Client (to find zone name, etc.)
+    probe_all_strings(pm, mine)
 
     # Summary
     section("Summary")

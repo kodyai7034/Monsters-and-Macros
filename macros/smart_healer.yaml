@@ -1,0 +1,88 @@
+# =============================================================================
+# Reactive Monitor — Smart Healer
+# =============================================================================
+# Improved healer that uses compound conditions:
+# - Won't cast if already casting
+# - Won't cast big heals if mana is too low (saves for emergencies)
+# - Sits to regen between fights when safe
+#
+# ABILITY BAR (customize to match your setup):
+#   Slot 5: Fast Heal
+#   Slot 6: Complete Heal (big slow heal)
+#   Slot 3: Heal over Time
+# =============================================================================
+
+name: "Smart Healer"
+type: reactive
+description: "Intelligent healing with mana management"
+poll_interval: 0.3
+
+rules:
+  - name: "Emergency heal (always cast)"
+    priority: 1
+    condition:
+      check: and
+      conditions:
+        - check: mem_health_below
+          value: 0.25
+        - check: player_not_casting
+    cooldown: 2.0
+    actions:
+      - action: log
+        message: "!!! EMERGENCY — Complete Heal !!!"
+      - action: use_ability
+        slot: 6
+      - action: wait
+        duration: 3.5
+
+  - name: "Fast heal"
+    priority: 5
+    condition:
+      check: and
+      conditions:
+        - check: mem_health_below
+          value: 0.5
+        - check: player_not_casting
+        - check: mem_mana_above
+          value: 0.1
+    cooldown: 2.5
+    actions:
+      - action: use_ability
+        slot: 5
+      - action: wait
+        duration: 2.0
+
+  - name: "Maintain HoT (only if not low mana)"
+    priority: 10
+    condition:
+      check: and
+      conditions:
+        - check: mem_health_below
+          value: 0.8
+        - check: player_not_casting
+        - check: mem_mana_above
+          value: 0.3
+        - check: player_not_has_buff
+          buff_name: "Heal over Time"
+    cooldown: 15.0
+    actions:
+      - action: use_ability
+        slot: 3
+
+  - name: "Sit for mana between fights"
+    priority: 30
+    condition:
+      check: and
+      conditions:
+        - check: mem_health_above
+          value: 0.8
+        - check: mem_mana_below
+          value: 0.5
+        - check: not_in_combat
+        - check: player_is_standing
+        - check: player_not_casting
+    cooldown: 10.0
+    actions:
+      - action: log
+        message: "Out of combat, low mana — sitting"
+      - action: sit

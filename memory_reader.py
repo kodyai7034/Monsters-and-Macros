@@ -44,6 +44,7 @@ class EntityOff:
     STATS = 0x250           # EntityStats* _stats
     IS_CASTING = 0x258      # bool isCasting
     AUTOATTACKING = 0x25F   # bool autoattacking
+    POSITION = 0x280        # AntiTamperVector3* _localInterpolatedServerPosition
     POSTURE = 0x28C         # EntityPosture CurrentPosture (int)
     TARGET_HANDLER = 0x1B0  # EntityTargetHandler* TargetHandler
     BUFFS = 0x2D0           # EntityBuffs* Buffs
@@ -58,8 +59,22 @@ class ClientOff:
     CLASS_HID = 0x308       # Il2CppString* classHID
     INVENTORY = 0x330       # Inventory* inventory
     LAST_TARGET = 0x370     # Entity* lastTarget
+    HEADING_ATF = 0x388     # AntiTamperFloat* heading (degrees 0-360)
+    HEADING_RAW = 0x4AC     # float heading (cached copy, degrees 0-360)
     ABILITIES = 0x4D8       # ClientAbilities* Abilities
     IS_FEIGN_DEATH = 0x3C2  # bool isFeignDeath
+
+
+# AntiTamperVector3 — stores position as 3 AntiTamperFloat references
+class AntiTamperVector3Off:
+    X = 0x10                # AntiTamperFloat* _x
+    Y = 0x18                # AntiTamperFloat* _y
+    Z = 0x20                # AntiTamperFloat* _z
+
+
+# AntiTamperFloat — tamper-protected float wrapper
+class AntiTamperFloatOff:
+    PRIMARY = 0x10          # float _primary (the actual readable value)
 
 
 # EntityTargetHandler
@@ -119,9 +134,15 @@ class IL2CPP:
     CLASS_STATIC_FIELDS = 0xB8  # void* static_fields (Unity 6000.x / 2023+)
 
 
-# Metadata address from script.json (Il2CppDumper output)
-# This is the RVA within GameAssembly.dll for Client_TypeInfo pointer
+# Metadata addresses (RVAs within GameAssembly.dll)
 CLIENT_TYPEINFO_RVA = 0x54405D8
+ZONE_CONTROLLER_TYPEINFO_RVA = 0x0542B5B0
+
+
+# ZoneController — singleton that tracks current zone
+class ZoneControllerOff:
+    INSTANCE_STATIC = 0x0   # ZoneController* instance (in static_fields)
+    CURRENT_ZONE_HID = 0x28 # Il2CppString* currentZoneHid
 
 
 class GameSnapshot:
@@ -137,8 +158,14 @@ class GameSnapshot:
         self.player_mana = 0
         self.player_max_mana = 0
         self.player_endurance = 0
+        self.player_max_endurance = 0
         self.player_level = 0
         self.player_buffs = []      # list of buff dicts
+        self.player_x = 0.0
+        self.player_y = 0.0         # vertical axis
+        self.player_z = 0.0
+        self.player_heading = 0.0   # degrees 0-360
+        self.zone_name = ""
 
         # Target
         self.target = None          # dict from _read_entity_data
@@ -148,6 +175,9 @@ class GameSnapshot:
         self.target_max_mana = 0
         self.target_level = 0
         self.target_buffs = []      # list of buff dicts
+        self.target_x = 0.0
+        self.target_y = 0.0
+        self.target_z = 0.0
 
     @property
     def age(self):
@@ -172,6 +202,7 @@ class GameMemoryReader:
         self.ga_base = 0
         self._connected = False
         self._client_mine_ptr = 0
+        self._zone_controller_ptr = 0
 
         # Polling thread
         self._poll_interval = self.config.get("poll_interval", 0.1)  # 100ms default
@@ -222,6 +253,7 @@ class GameMemoryReader:
             self.pm.close_process()
         self._connected = False
         self._client_mine_ptr = 0
+        self._zone_controller_ptr = 0
 
     @property
     def connected(self):
@@ -398,6 +430,28 @@ class GameMemoryReader:
             return
         self._client_mine_ptr = self.read_ptr(static_fields + ClientOff.MINE_STATIC)
 
+    def _read_zone_name(self):
+        """Read current zone HID from ZoneController singleton."""
+        if not self._zone_controller_ptr:
+            # Resolve ZoneController.instance from static fields
+            rva = self.config.get("zone_controller_rva", ZONE_CONTROLLER_TYPEINFO_RVA)
+            typeinfo_addr = self.ga_base + rva
+            il2cpp_class = self.read_ptr(typeinfo_addr)
+            if not il2cpp_class:
+                return ""
+            static_fields = self.read_ptr(il2cpp_class + IL2CPP.CLASS_STATIC_FIELDS)
+            if not static_fields:
+                return ""
+            self._zone_controller_ptr = self.read_ptr(
+                static_fields + ZoneControllerOff.INSTANCE_STATIC
+            )
+        if not self._zone_controller_ptr:
+            return ""
+        str_ptr = self.read_ptr(
+            self._zone_controller_ptr + ZoneControllerOff.CURRENT_ZONE_HID
+        )
+        return self.read_il2cpp_string(str_ptr)
+
     # =====================================================================
     # Polling thread
     # =====================================================================
@@ -433,8 +487,14 @@ class GameMemoryReader:
             snap.player_mana = self._read_stat(player_ptr, 2)
             snap.player_max_mana = self._read_stat(player_ptr, 3)
             snap.player_endurance = self._read_stat(player_ptr, 4)
+            snap.player_max_endurance = self._read_stat(player_ptr, 5)
             snap.player_level = self._read_stat(player_ptr, 17)
             snap.player_buffs = self.read_buffs(player_ptr)
+            snap.player_x, snap.player_y, snap.player_z = self._read_position(player_ptr)
+            snap.player_heading = self._read_heading(player_ptr)
+
+        # Zone
+        snap.zone_name = self._read_zone_name()
 
         # Target
         target_ptr = 0
@@ -451,6 +511,7 @@ class GameMemoryReader:
             snap.target_max_mana = self._read_stat(target_ptr, 3)
             snap.target_level = self._read_stat(target_ptr, 17)
             snap.target_buffs = self.read_buffs(target_ptr)
+            snap.target_x, snap.target_y, snap.target_z = self._read_position(target_ptr)
 
         # Detect changes and fire events
         old = self._snapshot
@@ -592,6 +653,46 @@ class GameMemoryReader:
                     return self.read_int(obs_ptr + 0x10)  # _value field
                 return 0
         return 0
+
+    def _read_position(self, entity_ptr):
+        """Read AntiTamperVector3 position from an entity.
+
+        Path: entity_ptr + 0x280 -> AntiTamperVector3*
+              -> _x(0x10) -> AntiTamperFloat* -> _primary(0x10) = float
+              -> _y(0x18) -> AntiTamperFloat* -> _primary(0x10) = float
+              -> _z(0x20) -> AntiTamperFloat* -> _primary(0x10) = float
+        Returns (x, y, z) tuple of floats.
+        """
+        if not entity_ptr:
+            return (0.0, 0.0, 0.0)
+
+        vec_ptr = self.read_ptr(entity_ptr + EntityOff.POSITION)
+        if not vec_ptr:
+            return (0.0, 0.0, 0.0)
+
+        coords = []
+        for offset in (AntiTamperVector3Off.X, AntiTamperVector3Off.Y, AntiTamperVector3Off.Z):
+            atf_ptr = self.read_ptr(vec_ptr + offset)
+            if atf_ptr:
+                coords.append(self.read_float(atf_ptr + AntiTamperFloatOff.PRIMARY))
+            else:
+                coords.append(0.0)
+
+        return tuple(coords)
+
+    def _read_heading(self, entity_ptr):
+        """Read player heading from AntiTamperFloat at ClientOff.HEADING_ATF.
+
+        Returns heading in degrees (0-360).
+        """
+        if not entity_ptr:
+            return 0.0
+        atf_ptr = self.read_ptr(entity_ptr + ClientOff.HEADING_ATF)
+        if atf_ptr:
+            val = self.read_float(atf_ptr + AntiTamperFloatOff.PRIMARY)
+            if val is not None:
+                return val
+        return 0.0
 
     def get_entity_health(self, entity_ptr):
         """Get current health for an entity (live read, not snapshot)."""
@@ -736,6 +837,102 @@ class GameMemoryReader:
             p = self._snapshot.player
             return p["is_casting"] if p else False
 
+    def player_is_sitting(self):
+        """Check if local player is sitting (posture == 1)."""
+        with self._lock:
+            p = self._snapshot.player
+            return p["posture"] == 1 if p else False
+
+    def player_is_standing(self):
+        """Check if local player is standing (posture == 0)."""
+        with self._lock:
+            p = self._snapshot.player
+            return p["posture"] == 0 if p else False
+
+    def player_is_autoattacking(self):
+        """Check if player has auto-attack enabled."""
+        with self._lock:
+            p = self._snapshot.player
+            return p["autoattacking"] if p else False
+
+    def player_posture(self):
+        """Get player posture as int (0=standing, 1=sitting, etc.)."""
+        with self._lock:
+            p = self._snapshot.player
+            return p["posture"] if p else 0
+
+    def get_endurance_pct(self):
+        """Get player endurance as a 0.0-1.0 percentage."""
+        with self._lock:
+            snap = self._snapshot
+            if snap.player_max_endurance <= 0:
+                return 0.0
+            return snap.player_endurance / snap.player_max_endurance
+
+    def get_player_level(self):
+        """Get player level from snapshot."""
+        with self._lock:
+            return self._snapshot.player_level
+
+    def get_zone_name(self):
+        """Get the current zone HID string."""
+        with self._lock:
+            return self._snapshot.zone_name
+
+    def player_buff_count(self):
+        """Get number of active buffs on the player."""
+        with self._lock:
+            return len(self._snapshot.player_buffs)
+
+    def target_buff_count(self):
+        """Get number of active buffs/debuffs on the target."""
+        with self._lock:
+            return len(self._snapshot.target_buffs)
+
+    def get_target_position(self):
+        """Get target position as (x, y, z). Returns (0,0,0) if no target."""
+        with self._lock:
+            snap = self._snapshot
+            return (snap.target_x, snap.target_y, snap.target_z)
+
+    def get_player_position(self):
+        """Get player position as (x, y, z)."""
+        with self._lock:
+            snap = self._snapshot
+            return (snap.player_x, snap.player_y, snap.player_z)
+
+    def get_player_heading(self):
+        """Get player heading in degrees (0-360)."""
+        with self._lock:
+            return self._snapshot.player_heading
+
+    def get_distance_to_target(self):
+        """Get 2D distance (XZ plane) to current target."""
+        with self._lock:
+            snap = self._snapshot
+            if not snap.target:
+                return float("inf")
+            dx = snap.target_x - snap.player_x
+            dz = snap.target_z - snap.player_z
+            return (dx * dx + dz * dz) ** 0.5
+
+    def get_angle_to_target(self):
+        """Get angle (degrees) from player to target on XZ plane.
+
+        Returns angle in degrees where 0 = +X, 90 = +Z.
+        Returns None if no target.
+        """
+        import math
+        with self._lock:
+            snap = self._snapshot
+            if not snap.target:
+                return None
+            dx = snap.target_x - snap.player_x
+            dz = snap.target_z - snap.player_z
+            if dx == 0 and dz == 0:
+                return 0.0
+            return math.degrees(math.atan2(dz, dx))
+
     def target_name(self):
         """Get the name of the current target."""
         with self._lock:
@@ -801,6 +998,9 @@ class GameMemoryReader:
         print(f"  Health: {snap.player_hp}/{snap.player_max_hp} ({hp_pct:.0%})")
         print(f"  Mana: {snap.player_mana}/{snap.player_max_mana} ({mp_pct:.0%})")
         print(f"  Level: {snap.player_level}")
+        print(f"  Position: ({snap.player_x:.1f}, {snap.player_y:.1f}, {snap.player_z:.1f})")
+        print(f"  Heading:  {snap.player_heading:.1f}°")
+        print(f"  Zone: {snap.zone_name}")
 
         print(f"  Buffs ({len(snap.player_buffs)}):")
         for b in snap.player_buffs:

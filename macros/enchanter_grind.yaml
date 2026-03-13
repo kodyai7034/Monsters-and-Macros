@@ -1,0 +1,116 @@
+# =============================================================================
+# Active Macro — Enchanter Solo Grind
+# =============================================================================
+# Finds mobs, runs to them, casts damage spell twice, auto attacks until dead,
+# loots, then repeats. Pair with reactive monitors for healing/mana management.
+#
+# ABILITY BAR:
+#   Slot 1: Damage spell (nuke)
+#
+# RECOMMENDED REACTIVE MONITORS (run alongside):
+#   - Smart Healer (or Healer Monitor)
+#   - Smart Mana Sitter
+#   - Auto Stand
+# =============================================================================
+
+name: "Enchanter Solo Grind"
+description: "Target, nuke x2, auto-attack, loot, repeat"
+loop_delay: 0.5
+
+actions:
+  # --- Find a target ---
+  - action: log
+    message: "Looking for a target..."
+
+  - action: target_nearest_hostile
+    delay: 0.5
+
+  # If no target found, move forward and try again
+  - action: condition
+    check: no_target
+    then:
+      - action: move_forward
+        duration: 3.0
+      - action: turn
+        dx: 60
+        duration: 0.3
+      - action: target_nearest_hostile
+        delay: 0.5
+
+  # Bail out of this loop iteration if still no target
+  - action: condition
+    check: no_target
+    then:
+      - action: log
+        message: "No target found, searching..."
+      - action: wait
+        duration: 1.0
+
+  # --- Close distance to target ---
+  - action: condition
+    check: has_target
+    then:
+      - action: log
+        message: "Target acquired — closing distance"
+      # Move toward the mob using heading-based navigation
+      - action: move_to_target
+        range: 15.0
+        timeout: 20
+
+      # --- Cast nuke twice ---
+      - action: condition
+        check: player_not_casting
+        then:
+          - action: log
+            message: "Casting nuke #1"
+          - action: use_ability
+            slot: 1
+          - action: wait
+            duration: 3.0
+
+      - action: condition
+        check: and
+        conditions:
+          - check: has_target
+          - check: not
+            condition:
+              check: target_is_corpse
+          - check: player_not_casting
+        then:
+          - action: log
+            message: "Casting nuke #2"
+          - action: use_ability
+            slot: 1
+          - action: wait
+            duration: 3.0
+
+      # --- Auto attack until dead ---
+      - action: condition
+        check: and
+        conditions:
+          - check: has_target
+          - check: not
+            condition:
+              check: target_is_corpse
+        then:
+          - action: log
+            message: "Nukes done — auto attacking"
+          - action: wait_for_target_dead
+            timeout: 30
+
+      # --- Loot ---
+      - action: condition
+        check: and
+        conditions:
+          - check: has_target
+          - check: target_is_corpse
+        then:
+          - action: log
+            message: "Looting..."
+          - action: interact
+          - action: wait
+            duration: 1.5
+
+      # Brief pause before next pull
+      - action: wait
+        duration: 1.0

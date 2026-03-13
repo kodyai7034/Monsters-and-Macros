@@ -1,0 +1,64 @@
+# =============================================================================
+# Reactive Monitor — Combat Assist
+# =============================================================================
+# Auto-engages hostile targets and manages auto-attack.
+# Stops attacking corpses. Re-targets if target dies.
+#
+# Great to run alongside a healer or DPS rotation macro.
+# =============================================================================
+
+name: "Combat Assist"
+type: reactive
+description: "Auto-attack management and target cycling"
+poll_interval: 0.3
+
+rules:
+  - name: "Stop attacking corpse"
+    priority: 1
+    condition:
+      check: and
+      conditions:
+        - check: has_target
+        - check: target_is_corpse
+        - check: player_is_autoattacking
+    cooldown: 1.0
+    actions:
+      - action: log
+        message: "Target is dead — stopping attack"
+      - action: press
+        key: auto_attack
+      - action: wait
+        duration: 0.5
+      - action: press
+        key: target_nearest
+
+  - name: "Engage hostile target"
+    priority: 5
+    condition:
+      check: and
+      conditions:
+        - check: has_target
+        - check: target_is_hostile
+        - check: player_not_autoattacking
+        - check: not
+          condition:
+            check: target_is_corpse
+        - check: player_not_casting
+    cooldown: 2.0
+    actions:
+      - action: log
+        message: "Engaging target"
+      - action: press
+        key: auto_attack
+
+  - name: "Find new target"
+    priority: 10
+    condition:
+      check: and
+      conditions:
+        - check: no_target
+        - check: player_not_casting
+    cooldown: 2.0
+    actions:
+      - action: press
+        key: target_nearest

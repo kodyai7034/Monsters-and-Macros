@@ -1,0 +1,46 @@
+# =============================================================================
+# Reactive Monitor — Smart Mana Sitter
+# =============================================================================
+# Improved version of mana_sitter that checks multiple conditions:
+# - Only sits when mana is low AND health is safe AND not in combat
+# - Stands up automatically when mana is full
+# =============================================================================
+
+name: "Smart Mana Sitter"
+type: reactive
+description: "Sits for mana when safe, stands when full"
+poll_interval: 1.0
+
+rules:
+  - name: "Stand when mana full"
+    priority: 5
+    condition:
+      check: and
+      conditions:
+        - check: player_is_sitting
+        - check: mem_mana_above
+          value: 0.95
+    cooldown: 5.0
+    actions:
+      - action: log
+        message: "Mana full — standing up"
+      - action: press
+        key: sit
+
+  - name: "Sit for mana regen"
+    priority: 10
+    condition:
+      check: and
+      conditions:
+        - check: player_is_standing
+        - check: mem_mana_below
+          value: 0.3
+        - check: mem_health_above
+          value: 0.7
+        - check: not_in_combat
+        - check: player_not_casting
+    cooldown: 5.0
+    actions:
+      - action: log
+        message: "Low mana, safe to sit — meditating"
+      - action: sit

@@ -1,0 +1,81 @@
+# =============================================================================
+# Reactive Monitor — Debuff Monitor (Enchanter)
+# =============================================================================
+# Monitors target for CC status and reapplies as needed.
+# Uses compound conditions to avoid overwriting active CC.
+#
+# ABILITY BAR (customize to match your setup):
+#   Slot 1: Mesmerize
+#   Slot 2: Slow
+#   Slot 4: Tash (magic resist debuff)
+# =============================================================================
+
+name: "Debuff Monitor"
+type: reactive
+description: "Auto-applies CC and debuffs to hostile targets"
+poll_interval: 0.5
+
+rules:
+  - name: "Re-mez if broken"
+    priority: 1
+    condition:
+      check: and
+      conditions:
+        - check: has_target
+        - check: target_is_hostile
+        - check: not
+          condition:
+            check: target_is_mezzed
+        - check: not
+          condition:
+            check: target_is_corpse
+        - check: player_not_casting
+    cooldown: 4.0
+    actions:
+      - action: log
+        message: "Target not mezzed — casting Mesmerize"
+      - action: use_ability
+        slot: 1
+      - action: wait
+        duration: 3.0
+
+  - name: "Apply slow"
+    priority: 5
+    condition:
+      check: and
+      conditions:
+        - check: has_target
+        - check: target_is_hostile
+        - check: target_not_has_buff
+          buff_name: "Slow"
+        - check: not
+          condition:
+            check: target_is_corpse
+        - check: player_not_casting
+    cooldown: 30.0
+    actions:
+      - action: log
+        message: "Applying Slow"
+      - action: use_ability
+        slot: 2
+      - action: wait
+        duration: 3.0
+
+  - name: "Apply tash"
+    priority: 10
+    condition:
+      check: and
+      conditions:
+        - check: has_target
+        - check: target_is_hostile
+        - check: target_not_has_buff_category
+          category: "det"
+        - check: player_not_casting
+    cooldown: 60.0
+    actions:
+      - action: log
+        message: "Applying Tash"
+      - action: use_ability
+        slot: 4
+      - action: wait
+        duration: 2.5

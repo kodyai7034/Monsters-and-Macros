@@ -1,0 +1,27 @@
+# =============================================================================
+# Reactive Monitor — Auto Stand
+# =============================================================================
+# Stands up when a hostile target appears while sitting.
+# Prevents getting caught meditating when a mob attacks.
+# =============================================================================
+
+name: "Auto Stand"
+type: reactive
+description: "Stands up if hostile target while sitting"
+poll_interval: 0.2
+
+rules:
+  - name: "Stand on aggro"
+    priority: 1
+    condition:
+      check: and
+      conditions:
+        - check: player_is_sitting
+        - check: has_target
+        - check: target_is_hostile
+    cooldown: 2.0
+    actions:
+      - action: log
+        message: "!!! Hostile target while sitting — standing up !!!"
+      - action: press
+        key: sit

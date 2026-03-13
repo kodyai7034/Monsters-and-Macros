@@ -1,0 +1,23 @@
+# =============================================================================
+# Reactive Monitor — Mana Sitter
+# =============================================================================
+# Sits to regen mana when it drops low and health is safe.
+# Will not sit if health is below 80% (unsafe to meditate).
+# =============================================================================
+
+name: "Mana Sitter"
+type: reactive
+description: "Sits to regen mana when low and health is safe"
+poll_interval: 1.0
+
+rules:
+  - name: "Sit for mana"
+    priority: 20
+    condition:
+      check: mem_mana_below
+      value: 0.2
+    cooldown: 10.0
+    actions:
+      - action: log
+        message: "Low mana — sitting to regen"
+      - action: sit

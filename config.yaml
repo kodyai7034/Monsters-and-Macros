@@ -105,9 +105,9 @@ keybinds:
   party: "g"
 
 # Memory reading (direct game memory via ReadProcessMemory)
-# Requires pymem and the game running on Windows
+# Connects automatically on GUI startup when game is running.
+# Click "Connect" in the status bar to retry if the game wasn't running at launch.
 memory:
-  enabled: false                 # Set to true to enable memory-based conditions
   client_typeinfo_rva: 0x54405D8 # From IL2CPP script.json — update after game patches
   poll_interval: 0.1             # How often to read game state (seconds, 0.1 = 100ms)
 

@@ -1,0 +1,101 @@
+{
+  "_comment": "Maps zone names to background image files. Game uses lowercase no-space HIDs like 'nightharbor'. Fuzzy matching handles variations.",
+  "zones": {
+    "nightharbor": {
+      "background": "backgrounds/Night_Harbor.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Night_Harbor"
+    },
+    "Night Harbor": {
+      "background": "backgrounds/Night_Harbor.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Night_Harbor"
+    },
+    "shadeddunes": {
+      "background": "backgrounds/Shaded_Dunes.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Shaded_Dunes"
+    },
+    "Shaded Dunes": {
+      "background": "backgrounds/Shaded_Dunes.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Shaded_Dunes"
+    },
+    "sungreet": {
+      "background": "backgrounds/Sungreet_Strand.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Sungreet_Strand"
+    },
+    "sungreetstrand": {
+      "background": "backgrounds/Sungreet_Strand.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Sungreet_Strand"
+    },
+    "Sungreet Strand": {
+      "background": "backgrounds/Sungreet_Strand.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Sungreet_Strand"
+    },
+    "fallenpass": {
+      "background": "backgrounds/Fallen_Pass.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Fallen_Pass"
+    },
+    "Fallen Pass": {
+      "background": "backgrounds/Fallen_Pass.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Fallen_Pass"
+    },
+    "glassflats": {
+      "background": "backgrounds/Glass_Flats.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Glass_Flats"
+    },
+    "Glass Flats": {
+      "background": "backgrounds/Glass_Flats.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Glass_Flats"
+    },
+    "evershadeweald": {
+      "background": "backgrounds/Evershade_Weald.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Evershade_Weald"
+    },
+    "Evershade Weald": {
+      "background": "backgrounds/Evershade_Weald.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Evershade_Weald"
+    },
+    "tombofthelastwyrmsbane": {
+      "background": "backgrounds/Tomb_of_the_Last_Wyrmsbane.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Tomb_of_the_Last_Wyrmsbane"
+    },
+    "Tomb of the Last Wyrmsbane": {
+      "background": "backgrounds/Tomb_of_the_Last_Wyrmsbane.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Tomb_of_the_Last_Wyrmsbane"
+    },
+    "infestedcrypt": {
+      "background": "backgrounds/Infested_Crypt.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Infested_Crypt"
+    },
+    "Infested Crypt": {
+      "background": "backgrounds/Infested_Crypt.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Infested_Crypt"
+    },
+    "cavesofirem": {
+      "background": "backgrounds/Caves_of_Irem.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Caves_of_Irem"
+    },
+    "Caves of Irem": {
+      "background": "backgrounds/Caves_of_Irem.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Caves_of_Irem"
+    },
+    "faelindral": {
+      "background": "backgrounds/Faelindral.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Faelindral"
+    },
+    "Faelindral": {
+      "background": "backgrounds/Faelindral.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Faelindral"
+    },
+    "keepersbight": {
+      "background": "backgrounds/Keepers_Bight.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Keeper%27s_Bight"
+    },
+    "Keeper's Bight": {
+      "background": "backgrounds/Keepers_Bight.png",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Keeper%27s_Bight"
+    },
+    "deepdunes": {
+      "background": "backgrounds/Shaded_Dunes.jpg",
+      "source": "https://monstersandmemories.miraheze.org/wiki/Shaded_Dunes"
+    }
+  }
+}

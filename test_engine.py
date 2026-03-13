@@ -77,7 +77,7 @@ def run_tests(verbose=False):
         if f.endswith((".yaml", ".yml")):
             try:
                 m = engine.load_macro(os.path.join(macro_dir, f))
-                if "actions" not in m:
+                if "actions" not in m and "rules" not in m:
                     all_loaded = False
                 load_count += 1
             except Exception as e:
