@@ -1,0 +1,147 @@
+# =============================================================================
+# Paladin — Tank / Off-Healer
+# =============================================================================
+# Hybrid tank with self-heals, undead specialization, and group utility.
+# More survivable than a Fighter but less raw aggro generation.
+#
+# ABILITY BAR:
+#   Slot 1: Taunt
+#   Slot 2: Bash / Stun
+#   Slot 3: Lay on Hands (big emergency self-heal, long cooldown)
+#   Slot 4: Flash of Light (fast self/group heal)
+#   Slot 5: Holy Stun (stun undead)
+#   Slot 6: Defensive buff (AC/HP buff)
+#   Slot 7: Undead Nuke (extra damage vs undead)
+#   Slot 8: Group heal
+#
+# STRATEGY:
+#   - Taunt to hold aggro
+#   - Self-heal to reduce healer burden
+#   - Bash for interrupts
+#   - Lay on Hands only in true emergencies
+#   - Holy stun for undead pulls
+#   - Off-heal group when tanking is stable
+# =============================================================================
+
+name: "Paladin Tank"
+description: "Self-sustain tank with taunt rotation and emergency heals"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Paladin Tank Started ==="
+
+  # Pre-combat: defensive buff
+  - action: use_ability
+    slot: 6
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  # Engage
+  - action: target_nearest
+    delay: 0.4
+  - action: use_ability
+    slot: 1
+    delay: 0.3
+  - action: wait
+    duration: 1.5
+
+  # Main tanking loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # CRITICAL: Lay on Hands
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.2
+        then:
+          - action: log
+            message: "!!! LAY ON HANDS!"
+          - action: use_ability
+            slot: 3
+            delay: 0.2
+          - action: wait
+            duration: 2.0
+
+      # =============================================
+      # SELF HEAL when moderately damaged
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.55
+        then:
+          - action: use_ability
+            slot: 4
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # TAUNT ROTATION
+      # =============================================
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Bash (interrupt + aggro)
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Holy stun (extra for undead zones)
+      - action: use_ability
+        slot: 5
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Taunt again
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      # =============================================
+      # MANA CHECK (paladin spells use mana)
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.2
+        then:
+          - action: log
+            message: "Mana low — melee only"
+          - action: wait
+            duration: 3.0
+
+      # =============================================
+      # OFF-HEAL: Help healer if health is good
+      # =============================================
+      - action: condition
+        check: health_above
+        value: 0.8
+        then:
+          - action: condition
+            check: mana_above
+            value: 0.4
+            then:
+              - action: use_ability
+                slot: 8
+                delay: 0.3
+              - action: wait
+                duration: 2.5
+
+      # Wait before next cycle
+      - action: wait
+        duration: 2.0
+
+  - action: log
+    message: "=== Paladin Tank Complete ==="

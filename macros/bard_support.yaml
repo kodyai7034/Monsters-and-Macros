@@ -1,0 +1,129 @@
+# =============================================================================
+# Bard — Support / Puller / CC
+# =============================================================================
+# Twist songs for group buffs. Bards don't "cast and forget" — they twist
+# (cycle) between songs to maintain multiple effects. Each song is a short
+# duration buff that must be refreshed.
+#
+# The game tracks 5 instrument types:
+#   Brass, Percussion, Singing, String, Wind
+#
+# ABILITY BAR:
+#   Slot 1: Haste Song (attack speed buff for group)
+#   Slot 2: Mana Regen Song (mana regen for casters)
+#   Slot 3: HP Regen Song (health regen for group)
+#   Slot 4: Resist Song (magic resist buff)
+#   Slot 5: Snare Song (slow mob movement)
+#   Slot 6: Mezz Song (AoE crowd control)
+#   Slot 7: Run Speed Song (travel / pulling)
+#   Slot 8: Damage Song (group DPS boost)
+#
+# STRATEGY:
+#   Twist 3-4 songs in rotation to keep buffs active:
+#   - Combat twist: Haste → Mana Regen → HP Regen → (damage if 4-twist)
+#   - Pull twist: Run Speed → Snare → Mez
+#   - Recovery twist: Mana Regen → HP Regen → Resist
+#
+#   Songs have very short durations (12-18s), so you must keep cycling.
+#   The macro below does a standard combat twist.
+# =============================================================================
+
+name: "Bard Song Twist"
+description: "3-song combat twist: Haste → Mana Regen → HP Regen"
+loop_delay: 0.2
+
+actions:
+  - action: log
+    message: "=== Bard Song Twist Started ==="
+  - action: log
+    message: "Twisting: Haste / Mana Regen / HP Regen"
+
+  # Main twist loop
+  - action: repeat
+    times: 300
+    actions:
+
+      # =============================================
+      # EMERGENCY: CC if taking damage
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.4
+        then:
+          - action: log
+            message: "!!! AoE Mez!"
+          - action: use_ability
+            slot: 6
+            delay: 0.2
+          - action: wait
+            duration: 3.0
+
+      # =============================================
+      # SONG 1: Haste (attack speed for melee)
+      # =============================================
+      - action: use_ability
+        slot: 1
+        delay: 0.2
+      - action: wait
+        duration: 3.0
+
+      # =============================================
+      # SONG 2: Mana Regen (for casters)
+      # =============================================
+      - action: use_ability
+        slot: 2
+        delay: 0.2
+      - action: wait
+        duration: 3.0
+
+      # =============================================
+      # SONG 3: HP Regen (for group)
+      # =============================================
+      - action: use_ability
+        slot: 3
+        delay: 0.2
+      - action: wait
+        duration: 3.0
+
+      # =============================================
+      # OPTIONAL SONG 4: Damage boost if mana allows
+      # =============================================
+      - action: condition
+        check: mana_above
+        value: 0.4
+        then:
+          - action: use_ability
+            slot: 8
+            delay: 0.2
+          - action: wait
+            duration: 3.0
+
+      # =============================================
+      # MANA CHECK
+      # Bards use mana for songs
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.15
+        then:
+          - action: log
+            message: "Mana low — dropping to 2-song twist"
+          # Just haste + HP regen
+          - action: use_ability
+            slot: 1
+            delay: 0.2
+          - action: wait
+            duration: 3.0
+          - action: use_ability
+            slot: 3
+            delay: 0.2
+          - action: wait
+            duration: 3.0
+          - action: sit
+          - action: wait_for_mana
+            above: 0.4
+            timeout: 20
+            interval: 1.0
+
+  - action: log
+    message: "=== Bard Song Twist Complete ==="

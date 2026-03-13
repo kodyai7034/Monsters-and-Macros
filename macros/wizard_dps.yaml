@@ -1,0 +1,161 @@
+# =============================================================================
+# Wizard — Ranged Caster DPS
+# =============================================================================
+# Burst damage dealer. Nukes hard, manages mana, avoids aggro.
+#
+# ABILITY BAR:
+#   Slot 1: Main Nuke (highest damage)
+#   Slot 2: Secondary Nuke (faster cast, less damage)
+#   Slot 3: AoE Nuke (for multi-target)
+#   Slot 4: Root (emergency CC / kiting)
+#   Slot 5: Self Shield / Rune (damage absorption)
+#   Slot 6: Harvest / Mana recovery ability
+#   Slot 7: Gate (emergency escape)
+#   Slot 8: Buff (damage focus / crit buff)
+#
+# STRATEGY:
+#   - Nuke rotation: main nuke → secondary nuke → repeat
+#   - Watch mana carefully — wizards burn fast
+#   - Root if mob comes to you (lost aggro)
+#   - Shield up before combat
+#   - Gate out if things go very wrong
+#   - Sit and med between pulls
+# =============================================================================
+
+name: "Wizard DPS"
+description: "Nuke rotation with mana management and emergency root"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Wizard DPS Started ==="
+
+  # Pre-combat: shield up
+  - action: use_ability
+    slot: 5
+    delay: 0.3
+  - action: wait
+    duration: 2.5
+
+  # Main DPS loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # EMERGENCY: Taking damage — root + shield
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.5
+        then:
+          - action: log
+            message: "!!! Taking damage — Root + Shield!"
+          - action: use_ability
+            slot: 4
+            delay: 0.2
+          - action: wait
+            duration: 2.5
+          - action: use_ability
+            slot: 5
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # CRITICAL: Very low health — Gate out
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.2
+        then:
+          - action: log
+            message: "!!! CRITICAL — GATING OUT!"
+          - action: use_ability
+            slot: 7
+            delay: 0.2
+          - action: wait
+            duration: 3.0
+
+      # =============================================
+      # MANA CHECK — Wizard burns mana fast
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.15
+        then:
+          - action: log
+            message: "OOM — Harvesting mana"
+          - action: use_ability
+            slot: 6
+            delay: 0.3
+          - action: wait
+            duration: 2.0
+          - action: log
+            message: "Sitting to meditate"
+          - action: sit
+          - action: wait_for_mana
+            above: 0.6
+            timeout: 45
+            interval: 1.0
+          - action: log
+            message: "Mana recovered — resuming DPS"
+
+      # =============================================
+      # DPS ROTATION
+      # Main nuke → wait cast → secondary nuke → wait
+      # =============================================
+      - action: condition
+        check: mana_above
+        value: 0.3
+        then:
+          # Target
+          - action: target_nearest
+            delay: 0.3
+
+          # Main nuke
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 3.5
+
+          # Secondary nuke
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+          # Main nuke again
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 3.5
+
+      # =============================================
+      # CONSERVE MODE — low mana, use cheaper spells
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.3
+        then:
+          - action: condition
+            check: mana_above
+            value: 0.15
+            then:
+              - action: target_nearest
+                delay: 0.3
+              - action: use_ability
+                slot: 2
+                delay: 0.3
+              - action: wait
+                duration: 2.5
+
+      # Wait before next cycle
+      - action: wait
+        duration: 1.5
+
+  - action: log
+    message: "=== Wizard DPS Complete ==="

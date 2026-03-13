@@ -1,0 +1,135 @@
+# =============================================================================
+# Fighter — Main Tank
+# =============================================================================
+# Holds aggro on the main target, uses taunt rotation and defensive abilities.
+#
+# ABILITY BAR:
+#   Slot 1: Taunt (primary aggro)
+#   Slot 2: Bash / Shield Bash (interrupt + aggro)
+#   Slot 3: Kick (extra aggro + interrupt)
+#   Slot 4: Defensive Discipline (damage reduction cooldown)
+#   Slot 5: Attack / Strike (melee DPS for threat)
+#   Slot 6: AoE Taunt / Shout (multi-target aggro)
+#   Slot 7: Bandage / Self heal
+#   Slot 8: Buff (self-buff)
+#
+# STRATEGY:
+#   - Open with taunt to establish aggro
+#   - Rotate taunt + bash + kick for threat generation
+#   - Use defensive cooldown when health drops
+#   - AoE taunt if multiple mobs on healer
+#   - Keep attacking between ability cooldowns for passive threat
+# =============================================================================
+
+name: "Fighter Tank"
+description: "Aggro maintenance with taunt rotation and defensive cooldowns"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Fighter Tank Started ==="
+
+  # Engage: target and establish aggro
+  - action: target_nearest
+    delay: 0.4
+  - action: use_ability
+    slot: 1
+    delay: 0.3
+  - action: wait
+    duration: 1.5
+  - action: log
+    message: "Aggro established"
+
+  # Main tanking loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # EMERGENCY: Health critical — defensive CD
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.3
+        then:
+          - action: log
+            message: "!!! HEALTH CRITICAL — Defensive Discipline!"
+          - action: use_ability
+            slot: 4
+            delay: 0.2
+          - action: wait
+            duration: 1.5
+          - action: use_ability
+            slot: 7
+            delay: 0.3
+          - action: wait
+            duration: 2.0
+
+      # =============================================
+      # TAUNT ROTATION
+      # Keep cycling taunt abilities to hold aggro
+      # =============================================
+
+      # Primary taunt
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Bash (interrupt + threat)
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Melee strike for passive threat
+      - action: use_ability
+        slot: 5
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      # Kick (additional interrupt)
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # =============================================
+      # AoE AGGRO CHECK
+      # If health drops, mobs might be on healer
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.6
+        then:
+          - action: log
+            message: "Taking heavy damage — AoE taunt"
+          - action: use_ability
+            slot: 6
+            delay: 0.3
+          - action: wait
+            duration: 2.0
+
+      # =============================================
+      # ENDURANCE CHECK
+      # Abilities use endurance — manage it
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.15
+        then:
+          - action: log
+            message: "Endurance low — auto-attacking only"
+          - action: wait
+            duration: 5.0
+
+      # Wait before next rotation
+      - action: wait
+        duration: 2.0
+
+  - action: log
+    message: "=== Fighter Tank Complete ==="

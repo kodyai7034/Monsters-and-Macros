@@ -1,0 +1,175 @@
+# =============================================================================
+# Shadow Knight — Dark Tank
+# =============================================================================
+# Evil hybrid tank. Lifetap for self-sustain, fear for CC, DoTs for
+# threat generation. Feign death for emergency aggro drops.
+#
+# ABILITY BAR:
+#   Slot 1: Taunt
+#   Slot 2: Lifetap (damage + self heal — primary sustain)
+#   Slot 3: Disease DoT (threat + damage)
+#   Slot 4: Fear (CC — careful, mobs run!)
+#   Slot 5: Feign Death (aggro drop)
+#   Slot 6: Bash / Slam (interrupt)
+#   Slot 7: Harm Touch (big damage, long cooldown)
+#   Slot 8: Defensive buff
+#
+# STRATEGY:
+#   - Taunt + lifetap for aggro and self-healing
+#   - DoT for sustained threat
+#   - Fear ONLY for emergency CC (mob runs and may aggro more)
+#   - Feign death to drop aggro on multi-pulls
+#   - Harm touch for burst threat on pull
+#   - Less dependent on healer than fighter due to lifetap
+# =============================================================================
+
+name: "Shadow Knight Tank"
+description: "Lifetap tank with DoT threat and fear CC"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Shadow Knight Started ==="
+
+  # Defensive buff
+  - action: use_ability
+    slot: 8
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  # Pull with harm touch for burst aggro
+  - action: target_nearest
+    delay: 0.4
+  - action: use_ability
+    slot: 7
+    delay: 0.3
+  - action: wait
+    duration: 2.0
+  - action: use_ability
+    slot: 1
+    delay: 0.3
+  - action: wait
+    duration: 1.5
+  - action: log
+    message: "Aggro established with Harm Touch"
+
+  # Main tanking loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # EMERGENCY: Fear if overwhelmed
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.25
+        then:
+          - action: log
+            message: "!!! Critical — Fear + Lifetap!"
+          - action: use_ability
+            slot: 4
+            delay: 0.2
+          - action: wait
+            duration: 2.0
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # CORE ROTATION: Taunt + Lifetap + DoT
+      # =============================================
+
+      # Taunt
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Lifetap (damage + self heal)
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # DoT for sustained threat
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # Bash interrupt
+      - action: use_ability
+        slot: 6
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # Lifetap again (self-sustain)
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # Taunt refresh
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # =============================================
+      # MULTI-MOB: Feign Death to reset
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.35
+        then:
+          - action: log
+            message: "Too much damage — Feign Death"
+          - action: use_ability
+            slot: 5
+            delay: 0.2
+          - action: wait
+            duration: 4.0
+          - action: target_nearest
+            delay: 0.3
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 1.5
+
+      # =============================================
+      # MANA CHECK
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.15
+        then:
+          - action: log
+            message: "Mana low — melee + taunt only"
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 5.0
+
+      # Wait before next cycle
+      - action: wait
+        duration: 1.5
+
+  - action: log
+    message: "=== Shadow Knight Complete ==="

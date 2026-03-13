@@ -1,0 +1,163 @@
+# =============================================================================
+# Shaman — Hybrid Healer / Slower / DoT
+# =============================================================================
+# Versatile hybrid: slows mobs, heals group, DoTs for damage, buffs.
+# The slow debuff is the shaman's most important job — it reduces mob
+# attack speed, making the tank's job dramatically easier.
+#
+# ABILITY BAR:
+#   Slot 1: Slow (attack speed debuff — #1 priority)
+#   Slot 2: Heal (direct heal)
+#   Slot 3: DoT (poison/disease damage)
+#   Slot 4: Buff (STA/HP buff, or haste)
+#   Slot 5: Cripple (stat debuff on mob)
+#   Slot 6: Root (emergency CC)
+#   Slot 7: Cannibalize (HP → mana conversion)
+#   Slot 8: Cure (remove debuffs from group)
+#
+# STRATEGY:
+#   - Slow the mob FIRST — this is the shaman's top priority
+#   - Cripple for tough mobs (stat debuff)
+#   - Heal when tank is damaged
+#   - DoT for extra damage when mana allows
+#   - Cannibalize HP → mana when safe
+#   - Root for emergency CC
+# =============================================================================
+
+name: "Shaman Hybrid"
+description: "Slow priority → heal → DoT rotation with mana cannibalization"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Shaman Started ==="
+
+  # Pre-combat: buff group
+  - action: use_ability
+    slot: 4
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+  - action: log
+    message: "Buffs applied"
+
+  # Main loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # PRIORITY 1: SLOW THE MOB
+      # Most important shaman duty
+      # =============================================
+      - action: target_nearest
+        delay: 0.3
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 3.0
+      - action: log
+        message: "Mob slowed"
+
+      # Cripple for extra safety on tough mobs
+      - action: condition
+        check: mana_above
+        value: 0.5
+        then:
+          - action: use_ability
+            slot: 5
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # PRIORITY 2: HEAL CHECK
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.6
+        then:
+          - action: log
+            message: "Healing!"
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 3.0
+
+      # =============================================
+      # EMERGENCY: Root if taking damage
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.35
+        then:
+          - action: log
+            message: "!!! Emergency root + heal"
+          - action: use_ability
+            slot: 6
+            delay: 0.2
+          - action: wait
+            duration: 2.5
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 3.0
+
+      # =============================================
+      # DPS: DoT when mana allows
+      # =============================================
+      - action: condition
+        check: mana_above
+        value: 0.4
+        then:
+          - action: target_nearest
+            delay: 0.3
+          - action: use_ability
+            slot: 3
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # MANA MANAGEMENT
+      # Cannibalize: sacrifice HP for mana
+      # Only when health is high enough
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.3
+        then:
+          - action: condition
+            check: health_above
+            value: 0.7
+            then:
+              - action: log
+                message: "Cannibalizing HP for mana"
+              - action: use_ability
+                slot: 7
+                delay: 0.3
+              - action: wait
+                duration: 2.0
+
+      # Sit to med if really low
+      - action: condition
+        check: mana_below
+        value: 0.15
+        then:
+          - action: log
+            message: "OOM — meditating"
+          - action: sit
+          - action: wait_for_mana
+            above: 0.4
+            timeout: 25
+            interval: 1.0
+
+      # Wait before next cycle
+      - action: wait
+        duration: 3.0
+
+  - action: log
+    message: "=== Shaman Complete ==="

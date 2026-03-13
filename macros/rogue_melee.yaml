@@ -1,0 +1,147 @@
+# =============================================================================
+# Rogue — Melee DPS
+# =============================================================================
+# Positional melee DPS. Backstab from behind, use stealth opener, manage
+# endurance, and use emergency escape tools.
+#
+# ABILITY BAR:
+#   Slot 1: Backstab (main damage, requires behind target)
+#   Slot 2: Eviscerate / Strike (front-facing attack)
+#   Slot 3: Sneak Attack (stealth opener, big damage)
+#   Slot 4: Kick (interrupt)
+#   Slot 5: Stealth / Hide
+#   Slot 6: Escape / Evade (drop aggro)
+#   Slot 7: Poison Apply (weapon proc buff)
+#   Slot 8: Pick Lock / Utility
+#
+# STRATEGY:
+#   - Open from stealth with sneak attack
+#   - Spam backstab from behind the target
+#   - Use eviscerate when not behind
+#   - Kick to interrupt casters
+#   - Evade if you pull aggro
+#   - Re-stealth between fights for opener
+# =============================================================================
+
+name: "Rogue Melee DPS"
+description: "Backstab rotation with stealth opener and aggro management"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Rogue DPS Started ==="
+
+  # Pre-combat: apply poison
+  - action: use_ability
+    slot: 7
+    delay: 0.3
+  - action: wait
+    duration: 2.0
+
+  # Stealth opener
+  - action: use_ability
+    slot: 5
+    delay: 0.3
+  - action: wait
+    duration: 1.5
+  - action: log
+    message: "Stealthed — moving into position"
+
+  # Target and open
+  - action: target_nearest
+    delay: 0.4
+  - action: use_ability
+    slot: 3
+    delay: 0.3
+  - action: wait
+    duration: 2.0
+  - action: log
+    message: "Sneak attack landed!"
+
+  # Main DPS loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # EMERGENCY: Aggro on me — Evade!
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.4
+        then:
+          - action: log
+            message: "!!! AGGRO — Evading!"
+          - action: use_ability
+            slot: 6
+            delay: 0.2
+          - action: wait
+            duration: 2.0
+          # Re-stealth and re-open
+          - action: use_ability
+            slot: 5
+            delay: 0.3
+          - action: wait
+            duration: 1.5
+          - action: use_ability
+            slot: 3
+            delay: 0.3
+          - action: wait
+            duration: 2.0
+
+      # =============================================
+      # BACKSTAB ROTATION
+      # Primary DPS — spam backstab
+      # =============================================
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      # Eviscerate (front attack, for variety / when not behind)
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      # Kick interrupt (use periodically against casters)
+      - action: use_ability
+        slot: 4
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+
+      # More backstabs
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 2.0
+
+      # =============================================
+      # ENDURANCE CHECK
+      # Rogues use endurance, not mana
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.2
+        then:
+          - action: log
+            message: "Endurance low — auto-attacking"
+          - action: wait
+            duration: 8.0
+
+      # Wait before next cycle
+      - action: wait
+        duration: 1.0
+
+  - action: log
+    message: "=== Rogue DPS Complete ==="

@@ -1,0 +1,183 @@
+# =============================================================================
+# Necromancer — Pet + DoT DPS
+# =============================================================================
+# Pet class with damage-over-time focus. Send pet to tank, stack DoTs,
+# lifetap for self-healing, feign death for emergencies.
+#
+# ABILITY BAR:
+#   Slot 1: Lifetap (damage + self heal)
+#   Slot 2: DoT 1 (disease-based)
+#   Slot 3: DoT 2 (poison-based)
+#   Slot 4: Pet Attack command
+#   Slot 5: Feign Death (emergency aggro drop)
+#   Slot 6: Darkness / Snare (slow + damage)
+#   Slot 7: Summon Pet
+#   Slot 8: Pet Heal / Mend
+#
+# STRATEGY:
+#   - Summon pet before combat
+#   - Send pet in first to establish aggro
+#   - Stack DoTs on target
+#   - Lifetap for self-sustain
+#   - Feign death if you pull aggro
+#   - Mend pet if it's taking too much damage
+#   - Manage mana — DoTs are efficient but add up
+# =============================================================================
+
+name: "Necromancer Pet DPS"
+description: "Pet tank + DoT stacking with lifetap sustain and feign death"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Necromancer Started ==="
+
+  # Summon pet
+  - action: use_ability
+    slot: 7
+    delay: 0.3
+  - action: wait
+    duration: 5.0
+  - action: log
+    message: "Pet summoned"
+
+  # Main combat loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # TARGET AND SEND PET
+      # =============================================
+      - action: target_nearest
+        delay: 0.4
+      - action: use_ability
+        slot: 4
+        delay: 0.3
+      - action: wait
+        duration: 1.5
+      - action: log
+        message: "Pet engaging"
+
+      # =============================================
+      # DOT STACKING
+      # Apply both DoTs then lifetap
+      # =============================================
+
+      # Snare first (keeps mob on pet)
+      - action: use_ability
+        slot: 6
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # DoT 1 (disease)
+      - action: use_ability
+        slot: 2
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # DoT 2 (poison)
+      - action: use_ability
+        slot: 3
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      # Lifetap (damage + heal)
+      - action: use_ability
+        slot: 1
+        delay: 0.3
+      - action: wait
+        duration: 2.5
+
+      - action: log
+        message: "DoTs applied — letting them tick"
+
+      # =============================================
+      # EMERGENCY: Aggro on me — Feign Death
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.5
+        then:
+          - action: log
+            message: "!!! AGGRO — Feigning Death!"
+          - action: use_ability
+            slot: 5
+            delay: 0.2
+          - action: wait
+            duration: 5.0
+          - action: log
+            message: "FD successful — re-sending pet"
+          - action: target_nearest
+            delay: 0.3
+          - action: use_ability
+            slot: 4
+            delay: 0.3
+          - action: wait
+            duration: 1.5
+
+      # =============================================
+      # PET HEALTH CHECK
+      # (Using own health as proxy in this version)
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.7
+        then:
+          - action: log
+            message: "Healing pet"
+          - action: use_ability
+            slot: 8
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # MANA MANAGEMENT
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.2
+        then:
+          - action: log
+            message: "Mana low — lifetapping and medding"
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+          - action: sit
+          - action: wait_for_mana
+            above: 0.5
+            timeout: 30
+            interval: 1.0
+
+      # =============================================
+      # SUSTAIN: Refresh DoTs and lifetap
+      # =============================================
+      - action: condition
+        check: mana_above
+        value: 0.3
+        then:
+          # Lifetap for health
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+          # Refresh DoT 1
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # Wait for DoTs to tick
+      - action: wait
+        duration: 5.0
+
+  - action: log
+    message: "=== Necromancer Complete ==="

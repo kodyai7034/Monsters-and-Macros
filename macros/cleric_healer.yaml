@@ -1,0 +1,138 @@
+# =============================================================================
+# Cleric — Main Healer
+# =============================================================================
+# Primary group healer. Keeps the tank alive, manages mana, and provides
+# buffs and emergency healing.
+#
+# ABILITY BAR:
+#   Slot 1: Complete Heal (big slow heal)
+#   Slot 2: Fast Heal (quick smaller heal)
+#   Slot 3: Heal over Time (HoT)
+#   Slot 4: Group Heal
+#   Slot 5: Stun (emergency, interrupt casters)
+#   Slot 6: Buff (HP buff / AC buff)
+#   Slot 7: Resurrect
+#   Slot 8: Root (emergency CC)
+#
+# STRATEGY:
+#   - Watch tank health via screen reader
+#   - Fast heal when tank drops below 70%
+#   - Complete heal when tank drops below 40%
+#   - HoT to top off / reduce heal frequency
+#   - Group heal when you take AoE damage
+#   - Stun enemy casters or mez breaks
+#   - Sit to meditate when mana is low and tank is stable
+# =============================================================================
+
+name: "Cleric Healer"
+description: "Reactive healing rotation — keeps the tank alive, manages mana"
+loop_delay: 0.3
+
+actions:
+  - action: log
+    message: "=== Cleric Healer Started ==="
+
+  # Pre-combat: buff the group
+  - action: log
+    message: "Buffing group..."
+  - action: use_ability
+    slot: 6
+    delay: 0.3
+  - action: wait
+    duration: 3.0
+
+  # Main healing loop
+  - action: repeat
+    times: 200
+    actions:
+
+      # =============================================
+      # CRITICAL: Tank health emergency
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.4
+        then:
+          - action: log
+            message: "!!! EMERGENCY — Self healing!"
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # PRIORITY 1: Complete Heal when tank is low
+      # (Screen reads YOUR health as proxy —
+      #  in practice you'd target the tank)
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.5
+        then:
+          - action: log
+            message: "Tank low — Complete Heal"
+          - action: use_ability
+            slot: 1
+            delay: 0.3
+          - action: wait
+            duration: 4.0
+
+      # =============================================
+      # PRIORITY 2: Fast Heal for moderate damage
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.7
+        then:
+          - action: log
+            message: "Moderate damage — Fast Heal"
+          - action: use_ability
+            slot: 2
+            delay: 0.3
+          - action: wait
+            duration: 2.5
+
+      # =============================================
+      # PRIORITY 3: Maintain HoT on tank
+      # =============================================
+      - action: condition
+        check: health_below
+        value: 0.85
+        then:
+          - action: use_ability
+            slot: 3
+            delay: 0.3
+          - action: wait
+            duration: 2.0
+
+      # =============================================
+      # MANA MANAGEMENT
+      # Healers are mana-hungry — sit whenever safe
+      # =============================================
+      - action: condition
+        check: mana_below
+        value: 0.3
+        then:
+          - action: condition
+            check: health_above
+            value: 0.8
+            then:
+              - action: log
+                message: "Tank stable, sitting for mana"
+              - action: sit
+              - action: wait_for_mana
+                above: 0.6
+                timeout: 30
+                interval: 1.0
+              - action: log
+                message: "Mana recovered"
+
+      # =============================================
+      # IDLE: Nothing to heal — wait and watch
+      # =============================================
+      - action: wait
+        duration: 1.0
+
+  - action: log
+    message: "=== Cleric Healer Complete ==="
