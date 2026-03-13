@@ -11,3 +11,4 @@ recordings/*.json
 !recordings/.gitkeep
 routes/*.json
 !routes/.gitkeep
+probes/
