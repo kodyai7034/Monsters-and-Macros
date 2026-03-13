@@ -1,7 +1,7 @@
 """
 Macro engine that loads YAML macro definitions and executes them.
 Supports conditional logic, loops, screen-reading conditions,
-and humanized input to avoid the game's bot detection.
+memory-based conditions, and humanized input to avoid the game's bot detection.
 """
 
 import yaml
@@ -10,6 +10,7 @@ import os
 from input_simulator import InputSimulator
 from macro_player import MacroPlayer
 from screen_reader import ScreenReader
+from memory_reader import GameMemoryReader
 
 
 class MacroEngine:
@@ -19,6 +20,7 @@ class MacroEngine:
         self.config = config
         input_cfg = config.get("input", {})
         humanizer_cfg = config.get("humanizer", {})
+        memory_cfg = config.get("memory", {})
         self.keybinds = config.get("keybinds", {})
 
         self.input = InputSimulator(
@@ -30,6 +32,17 @@ class MacroEngine:
         self.player = MacroPlayer(self.input)
         self.screen = ScreenReader(config)
         self.running = False
+
+        # Memory reader (optional — requires pymem and game running)
+        self.memory = None
+        if memory_cfg.get("enabled", False):
+            self.memory = GameMemoryReader(config=memory_cfg)
+            try:
+                self.memory.connect()
+                print("[ENGINE] Memory reader connected")
+            except Exception as e:
+                print(f"[ENGINE] Memory reader failed to connect: {e}")
+                self.memory = None
 
     def get_key(self, action_name):
         """Resolve an action name to its keybind."""
@@ -155,6 +168,7 @@ class MacroEngine:
         value = action.get("value", 0.5)
         result = False
 
+        # Screen-based conditions
         if check == "health_below":
             result = self.screen.get_health_percent() < value
         elif check == "health_above":
@@ -173,6 +187,64 @@ class MacroEngine:
             expected = tuple(action.get("color", [0, 0, 0]))
             actual = self.screen.get_pixel_color(x, y)
             result = not self.screen.colors_match(actual, expected)
+
+        # Memory-based conditions (require memory reader)
+        elif check == "has_target":
+            result = self.memory.has_target() if self.memory else False
+        elif check == "no_target":
+            result = not self.memory.has_target() if self.memory else True
+        elif check == "target_is_hostile":
+            if self.memory:
+                t = self.memory.get_target()
+                result = t["is_hostile"] if t else False
+        elif check == "target_is_corpse":
+            if self.memory:
+                t = self.memory.get_target()
+                result = t["is_corpse"] if t else False
+        elif check == "target_is_stunned":
+            result = self.memory.target_is_stunned() if self.memory else False
+        elif check == "target_is_feared":
+            result = self.memory.target_is_feared() if self.memory else False
+        elif check == "target_is_mezzed":
+            result = self.memory.target_is_mezzed() if self.memory else False
+        elif check == "target_has_buff":
+            buff_name = action.get("buff_name", "")
+            result = self.memory.target_has_buff(buff_name) if self.memory else False
+        elif check == "target_not_has_buff":
+            buff_name = action.get("buff_name", "")
+            result = not self.memory.target_has_buff(buff_name) if self.memory else True
+        elif check == "player_has_buff":
+            buff_name = action.get("buff_name", "")
+            result = self.memory.player_has_buff(buff_name) if self.memory else False
+        elif check == "player_not_has_buff":
+            buff_name = action.get("buff_name", "")
+            result = not self.memory.player_has_buff(buff_name) if self.memory else True
+        elif check == "player_is_casting":
+            result = self.memory.player_is_casting() if self.memory else False
+        elif check == "player_not_casting":
+            result = not self.memory.player_is_casting() if self.memory else True
+        elif check == "target_name":
+            name = action.get("name", "")
+            result = self.memory.target_name().lower() == name.lower() if self.memory else False
+        elif check == "target_name_contains":
+            name = action.get("name", "")
+            result = name.lower() in self.memory.target_name().lower() if self.memory else False
+        elif check == "mem_health_below":
+            if self.memory:
+                pct = self.memory.get_health_pct()
+                result = pct < value
+        elif check == "mem_health_above":
+            if self.memory:
+                pct = self.memory.get_health_pct()
+                result = pct > value
+        elif check == "mem_mana_below":
+            if self.memory:
+                pct = self.memory.get_mana_pct()
+                result = pct < value
+        elif check == "mem_mana_above":
+            if self.memory:
+                pct = self.memory.get_mana_pct()
+                result = pct > value
 
         if result:
             then_actions = action.get("then", [])
@@ -223,6 +295,8 @@ class MacroEngine:
         """Stop macro execution."""
         self.running = False
         self.player.stop()
+        if self.memory:
+            self.memory.disconnect()
 
     def list_macros(self, directory="macros"):
         """List available macro files."""

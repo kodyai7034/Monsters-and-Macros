@@ -15,23 +15,23 @@ input:
 humanizer:
   enabled: true
   intensity: 0.5               # 0.0 = minimal, 1.0 = maximum randomization
-  # Game anti-bot thresholds (extracted from game code):
-  #   RAPID_CLICK_WINDOW: 0.3s
-  #   RAPID_CLICK_THRESHOLD: 3 clicks
-  #   ABILITY_PRESS_WINDOW: 1.5s
-  #   DRAG_INTENTION_SQR_DISTANCE: 2.99
-  #   DRAG_INTENTION_MAX_SECONDS: 1.0
 
-# MnM keybindings (update to match your in-game settings)
+# Keybinds imported from game controls.json
+# Run: python3 import_keybinds.py to re-import from game
 keybinds:
+  # Movement
   move_forward: "w"
   move_backward: "s"
-  strafe_left: "a"
-  strafe_right: "d"
+  turn_left: "a"
+  turn_right: "d"
   jump: "space"
-  auto_run: "numlock"
   sit: "x"
-  # Ability bar keys (slots 1-10)
+  crouch: "z"
+  auto_run: "e"
+  auto_attack: "q"
+  assist: "f"
+
+  # Ability bar (slots 1-10)
   ability_1: "1"
   ability_2: "2"
   ability_3: "3"
@@ -42,12 +42,74 @@ keybinds:
   ability_8: "8"
   ability_9: "9"
   ability_10: "0"
+
+  # Hot buttons (Shift + number)
+  hotbutton_1: "shift+1"
+  hotbutton_2: "shift+2"
+  hotbutton_3: "shift+3"
+  hotbutton_4: "shift+4"
+  hotbutton_5: "shift+5"
+  hotbutton_6: "shift+6"
+  hotbutton_7: "shift+7"
+  hotbutton_8: "shift+8"
+  hotbutton_9: "shift+9"
+  hotbutton_10: "shift+0"
+  hotbutton_11: "shift+-"
+  hotbutton_12: "shift+="
+
+  # Auras (Ctrl + number)
+  aura_1: "ctrl+1"
+  aura_2: "ctrl+2"
+  aura_3: "ctrl+3"
+  aura_4: "ctrl+4"
+  aura_5: "ctrl+5"
+  aura_6: "ctrl+6"
+  aura_7: "ctrl+7"
+  aura_8: "ctrl+8"
+  aura_9: "ctrl+9"
+  aura_10: "ctrl+0"
+
   # Targeting
   target_nearest: "tab"
-  # Chat
-  chat_open: "enter"
-  # Inventory
+  target_friendly: "shift+tab"
+  target_nearest_friendly: "f7"
+  target_nearest_hostile: "f8"
+  target_last: "ctrl+tab"
+  target_self: "f1"
+  target_party_1: "f2"
+  target_party_2: "f3"
+  target_party_3: "f4"
+  target_party_4: "f5"
+  target_party_5: "f6"
+
+  # UI / Social
   inventory: "i"
+  bags: "shift+b"
+  abilities_book: "b"
+  skills_window: "p"
+  social_window: "o"
+  journal_window: "j"
+  guild_window: "shift+g"
+  interact: "u"
+  inspect: "y"
+  toggle_interface: "f10"
+  main_menu: "alt+o"
+
+  # Chat
+  hail: "h"
+  consider: "c"
+  look: "l"
+  tell: "t"
+  reply: "r"
+  retell: "shift+t"
+  party: "g"
+
+# Memory reading (direct game memory via ReadProcessMemory)
+# Requires pymem and the game running on Windows
+memory:
+  enabled: false                 # Set to true to enable memory-based conditions
+  client_typeinfo_rva: 0x54405D8 # From IL2CPP script.json — update after game patches
+  poll_interval: 0.1             # How often to read game state (seconds, 0.1 = 100ms)
 
 recording:
   save_directory: "recordings"
