@@ -9,6 +9,7 @@ import json
 import math
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from ui_theme import get_skin
 
 
 ZONE_MAPS_FILE = os.path.join("maps", "zone_maps.json")
@@ -176,7 +177,7 @@ class MapTab(ttk.Frame):
     POINT_SIZE = 2
     PADDING = 40  # pixels of padding around map content
 
-    def __init__(self, parent, memory_reader=None, log_callback=None):
+    def __init__(self, parent, memory_reader=None, log_callback=None, skin="Obsidian"):
         super().__init__(parent)
         self.memory = memory_reader
         self.log = log_callback or (lambda msg: None)
@@ -199,6 +200,7 @@ class MapTab(ttk.Frame):
         # Background image
         self._bg_image = None  # PhotoImage reference
         self._bg_image_size = (0, 0)  # (width, height) of loaded image
+        self.set_skin(skin)
 
         # Calibration state
         self._calibrating = False
@@ -211,6 +213,19 @@ class MapTab(ttk.Frame):
 
         # Auto-start tracking once the GUI is ready
         self.after(500, self._auto_start_tracking)
+
+    def set_skin(self, skin_name):
+        """Update map overlays and canvas to match the active application skin."""
+        palette = get_skin(skin_name)
+        self.BG_COLOR = palette["background"]
+        self.POINT_COLOR = palette["accent"]
+        self.TRAIL_COLOR = palette["selection"]
+        self.PLAYER_COLOR = palette["danger"]
+        self.GRID_COLOR = palette["border"]
+        self.TEXT_COLOR = palette["muted"]
+        if hasattr(self, "canvas"):
+            self.canvas.configure(background=self.BG_COLOR)
+            self._redraw()
 
     def _auto_start_tracking(self):
         """Automatically start tracking if memory reader is connected."""

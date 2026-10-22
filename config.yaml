@@ -6,6 +6,9 @@ general:
   failsafe: true               # Move mouse to corner to abort
   failsafe_key: "f12"          # Emergency stop hotkey
 
+ui:
+  skin: "night-harbor"          # DPS palette id from config/live_meter_skins.json
+
 input:
   method: "directinput"        # "directinput" or "winmessage"
   hold_duration: 0.05          # How long to hold a key press

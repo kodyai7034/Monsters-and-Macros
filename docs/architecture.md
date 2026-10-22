@@ -21,6 +21,7 @@ Memory Reader (background thread, polls every 100ms)
 | `humanizer.py` | Anti-detection: log-normal reaction times, session fingerprinting, fatigue |
 | `gui.py` | Tkinter GUI — macros tab, recording tab, settings |
 | `map_tab.py` | Map exploration tracking with 2-point calibration |
+| `ui_theme.py` | Adapter for the DPS meter skin registry and Tkinter palette mapping |
 | `game_data.py` | Enums (Stat, Status, Posture), constants, zone/monster lists |
 | `screen_reader.py` | Pixel color health/mana bar detection (fallback when memory unavailable) |
 | `macro_player.py` | Playback engine for recorded or scripted action sequences |
@@ -76,4 +77,12 @@ memory:
 humanizer:
   enabled: true
   intensity: 0.5  # 0.0-1.0
+
+ui:
+  skin: "night-harbor"  # ID from config/live_meter_skins.json
 ```
+
+The macro GUI reads the DPS meter palette registry from
+`config/live_meter_skins.json`, so both tools can use the same skin set.
+Changing a palette in Settings applies it immediately; **Save Settings**
+persists its ID in `config.yaml`.

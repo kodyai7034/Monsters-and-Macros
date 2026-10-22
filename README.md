@@ -17,6 +17,7 @@ A macro automation tool for [Monsters and Memories](https://www.monstersandmemor
   - Random micro-behaviors (camera wiggles, hesitations, inventory checks)
   - Interval variance enforcement (breaks repetitive patterns)
 - **GUI** — Tkinter interface with macro editor, recording manager, settings, and game info reference
+- **Interface Skins** — Use the DPS meter's skin registry in the macro GUI; palette changes apply immediately and save with Settings
 - **CLI** — Full command-line interface for headless operation
 
 ## Requirements
@@ -51,6 +52,10 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+### Change the interface skin
+
+Open **Settings** and choose a palette under **Interface Skin**. The selector uses the DPS meter registry in `config/live_meter_skins.json` (47 palettes, including Night Harbor, game-inspired themes, and the art/theme-pack variants). The palette updates immediately across the controls, editors, recording list, and map; select **Save Settings** to restore it on the next launch. Existing `Obsidian`, `Ember`, and `Frost` settings remain valid aliases.
 
 ### Run a macro from CLI
 ```bash

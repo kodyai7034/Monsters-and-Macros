@@ -17,6 +17,13 @@ from macro_recorder import MacroRecorder
 from macro_player import MacroPlayer
 from map_tab import MapTab
 from memory_reader import GameMemoryReader
+from ui_theme import (
+    DEFAULT_SKIN,
+    get_skin,
+    get_skin_id,
+    get_skin_label,
+    skin_options,
+)
 
 
 def load_config(path="config.yaml"):
@@ -204,19 +211,21 @@ class MacrosTab(ttk.Frame):
         self._reactive_rows = {}
 
         for i, (fname, name, desc) in enumerate(reactive_list):
-            row = ttk.Frame(self._reactive_inner)
-            row.pack(fill="x", pady=1)
+            row = ttk.Frame(self._reactive_inner, style="SkinRow.TFrame")
+            row.pack(fill="x", padx=3, pady=2, ipady=3)
 
             status_var = tk.StringVar(value="Stopped")
 
-            ttk.Label(row, text=name, width=25, anchor="w").pack(side="left", padx=5)
-            ttk.Label(row, text=desc[:40], foreground="gray", width=35, anchor="w").pack(side="left", padx=2)
+            ttk.Label(row, text=name, width=25, anchor="w",
+                      style="SkinRow.TLabel").pack(side="left", padx=7)
+            ttk.Label(row, text=desc[:40], width=35, anchor="w",
+                      style="SkinMuted.TLabel").pack(side="left", padx=2)
             status_lbl = ttk.Label(row, textvariable=status_var, width=10, anchor="w",
-                                    font=("Consolas", 9))
+                                    font=("Consolas", 9), style="SkinStatus.TLabel")
             status_lbl.pack(side="left", padx=5)
 
             toggle_btn = ttk.Button(row, text="Start", width=6,
-                command=lambda f=fname: self._toggle_reactive(f))
+                command=lambda f=fname: self._toggle_reactive(f), style="Accent.TButton")
             toggle_btn.pack(side="left", padx=2)
 
             # Show in editor on click
@@ -470,9 +479,10 @@ class RecordingPanel(ttk.LabelFrame):
 class SettingsPanel(ttk.LabelFrame):
     """Settings panel for humanizer and keybinds."""
 
-    def __init__(self, parent, config):
+    def __init__(self, parent, config, skin_changed=None):
         super().__init__(parent, text="Settings")
         self.config = config
+        self.skin_changed = skin_changed or (lambda name: None)
 
         canvas = tk.Canvas(self, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
@@ -490,29 +500,42 @@ class SettingsPanel(ttk.LabelFrame):
     def _build_settings(self):
         frame = self.inner_frame
 
-        ttk.Label(frame, text="Humanizer", font=("", 10, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(5, 2))
+        ttk.Label(frame, text="Interface Skin", font=("", 10, "bold")).grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(5, 2))
+        ui_cfg = self.config.get("ui", {})
+        initial_skin = get_skin_label(ui_cfg.get("skin", DEFAULT_SKIN))
+        self.skin_var = tk.StringVar(value=initial_skin)
+        skin_combo = ttk.Combobox(
+            frame, textvariable=self.skin_var, values=skin_options(),
+            state="readonly", width=15)
+        skin_combo.grid(row=1, column=1, sticky="w", padx=5)
+        ttk.Label(frame, text="Palette:").grid(row=1, column=0, sticky="w")
+        skin_combo.bind("<<ComboboxSelected>>",
+                        lambda event: self.skin_changed(get_skin_id(self.skin_var.get())))
+
+        ttk.Label(frame, text="Humanizer", font=("", 10, "bold")).grid(row=3, column=0, columnspan=2, sticky="w", pady=(10, 2))
 
         humanizer_cfg = self.config.get("humanizer", {})
         self.humanize_enabled = tk.BooleanVar(value=humanizer_cfg.get("enabled", True))
-        ttk.Checkbutton(frame, text="Enabled", variable=self.humanize_enabled).grid(row=1, column=0, columnspan=2, sticky="w")
+        ttk.Checkbutton(frame, text="Enabled", variable=self.humanize_enabled).grid(row=4, column=0, columnspan=2, sticky="w")
 
-        ttk.Label(frame, text="Intensity:").grid(row=2, column=0, sticky="w")
+        ttk.Label(frame, text="Intensity:").grid(row=5, column=0, sticky="w")
         self.intensity_var = tk.DoubleVar(value=humanizer_cfg.get("intensity", 0.5))
-        ttk.Scale(frame, from_=0.0, to=1.0, variable=self.intensity_var, orient="horizontal").grid(row=2, column=1, sticky="ew", padx=5)
+        ttk.Scale(frame, from_=0.0, to=1.0, variable=self.intensity_var, orient="horizontal").grid(row=5, column=1, sticky="ew", padx=5)
 
-        ttk.Label(frame, text="Input", font=("", 10, "bold")).grid(row=3, column=0, columnspan=2, sticky="w", pady=(10, 2))
+        ttk.Label(frame, text="Input", font=("", 10, "bold")).grid(row=6, column=0, columnspan=2, sticky="w", pady=(10, 2))
 
         input_cfg = self.config.get("input", {})
-        ttk.Label(frame, text="Method:").grid(row=4, column=0, sticky="w")
+        ttk.Label(frame, text="Method:").grid(row=7, column=0, sticky="w")
         self.method_var = tk.StringVar(value=input_cfg.get("method", "directinput"))
         ttk.Combobox(frame, textvariable=self.method_var,
-                     values=["directinput", "pyautogui"], state="readonly", width=15).grid(row=4, column=1, sticky="w", padx=5)
+                     values=["directinput", "pyautogui"], state="readonly", width=15).grid(row=7, column=1, sticky="w", padx=5)
 
-        ttk.Label(frame, text="Keybinds", font=("", 10, "bold")).grid(row=5, column=0, columnspan=2, sticky="w", pady=(10, 2))
+        ttk.Label(frame, text="Keybinds", font=("", 10, "bold")).grid(row=8, column=0, columnspan=2, sticky="w", pady=(10, 2))
 
         self.keybind_vars = {}
         keybinds = self.config.get("keybinds", {})
-        row = 6
+        row = 9
         for action, key in sorted(keybinds.items()):
             ttk.Label(frame, text=f"{action}:").grid(row=row, column=0, sticky="w")
             var = tk.StringVar(value=key)
@@ -532,6 +555,7 @@ class SettingsPanel(ttk.LabelFrame):
         for action, var in self.keybind_vars.items():
             keybinds[action] = var.get()
         self.config["keybinds"] = keybinds
+        self.config.setdefault("ui", {})["skin"] = get_skin_id(self.skin_var.get())
         return self.config
 
 
@@ -545,6 +569,7 @@ class MacroToolGUI:
         self.root.minsize(800, 600)
 
         self.config = load_config()
+        self.skin_name = get_skin_id(self.config.get("ui", {}).get("skin", DEFAULT_SKIN))
 
         # Single shared memory reader
         self.memory_reader = GameMemoryReader(
@@ -560,17 +585,100 @@ class MacroToolGUI:
 
         self._setup_style()
         self._build_ui()
+        self._apply_skin(self.skin_name)
         self._setup_hotkey()
         self._update_status()
         self._try_connect_memory()
         self._memory_watchdog()
 
     def _setup_style(self):
-        style = ttk.Style()
+        self.style = ttk.Style()
         try:
-            style.theme_use("clam")
+            self.style.theme_use("clam")
         except tk.TclError:
             pass
+        self._apply_skin(self.skin_name)
+
+    def _apply_skin(self, name):
+        """Apply a palette to ttk controls and classic Tk text/list surfaces."""
+        self.skin_name = get_skin_id(name)
+        palette = get_skin(self.skin_name)
+        if hasattr(self, "settings_panel"):
+            self.settings_panel.skin_var.set(get_skin_label(self.skin_name))
+        self.root.configure(background=palette["background"])
+        style = getattr(self, "style", None)
+        if style is not None:
+            style.configure(".", background=palette["panel"], foreground=palette["text"])
+            style.configure("TFrame", background=palette["background"])
+            style.configure("TLabel", background=palette["background"], foreground=palette["text"])
+            style.configure("TLabelframe", background=palette["background"],
+                            bordercolor=palette["border"], relief="solid")
+            style.configure("TLabelframe.Label", background=palette["background"],
+                            foreground=palette["accent"], font=("", 9, "bold"))
+            style.configure("TNotebook", background=palette["background"],
+                            bordercolor=palette["border"])
+            style.configure("TNotebook.Tab", background=palette["panel"],
+                            foreground=palette["muted"], padding=(12, 7))
+            style.map("TNotebook.Tab",
+                      background=[("selected", palette["surface"])],
+                      foreground=[("selected", palette["accent"])])
+            style.configure("TButton", background=palette["surface"],
+                            foreground=palette["text"], bordercolor=palette["border"],
+                            padding=(9, 5), relief="raised")
+            style.map("TButton",
+                      background=[("active", palette["selection"]),
+                                  ("pressed", palette["accent"])],
+                      foreground=[("pressed", palette["accent_text"])])
+            style.configure("Accent.TButton", background=palette["accent"],
+                            foreground=palette["accent_text"],
+                            bordercolor=palette["accent"], padding=(8, 4))
+            style.map("Accent.TButton",
+                      background=[("active", palette["text"]),
+                                  ("pressed", palette["accent"])],
+                      foreground=[("active", palette["background"])])
+            style.configure("SkinRow.TFrame", background=palette["surface"],
+                            relief="solid", borderwidth=1)
+            style.configure("SkinRow.TLabel", background=palette["surface"],
+                            foreground=palette["text"])
+            style.configure("SkinMuted.TLabel", background=palette["surface"],
+                            foreground=palette["muted"])
+            style.configure("SkinStatus.TLabel", background=palette["surface"],
+                            foreground=palette["accent"])
+            style.configure("TCheckbutton", background=palette["background"],
+                            foreground=palette["text"])
+            style.configure("TEntry", fieldbackground=palette["surface"],
+                            foreground=palette["text"], insertcolor=palette["accent"])
+            style.configure("TCombobox", fieldbackground=palette["surface"],
+                            background=palette["surface"], foreground=palette["text"],
+                            arrowcolor=palette["accent"])
+            style.map("TCombobox",
+                      fieldbackground=[("readonly", palette["surface"])],
+                      foreground=[("readonly", palette["text"])])
+            style.configure("TSpinbox", fieldbackground=palette["surface"],
+                            background=palette["surface"], foreground=palette["text"])
+            style.configure("Horizontal.TScale", background=palette["background"],
+                            troughcolor=palette["surface"])
+            style.configure("TScrollbar", background=palette["panel"],
+                            troughcolor=palette["background"], arrowcolor=palette["muted"])
+        if hasattr(self, "map_tab"):
+            self.map_tab.set_skin(name)
+        for widget in self._walk_widgets(self.root):
+            if isinstance(widget, (tk.Text, tk.Listbox)):
+                widget.configure(
+                    background=palette["surface"], foreground=palette["text"],
+                    insertbackground=palette["accent"],
+                    selectbackground=palette["selection"],
+                    selectforeground=palette["text"],
+                    highlightbackground=palette["border"],
+                    highlightcolor=palette["accent"])
+            elif isinstance(widget, tk.Canvas):
+                widget.configure(background=palette["panel"])
+
+    @staticmethod
+    def _walk_widgets(parent):
+        for child in parent.winfo_children():
+            yield child
+            yield from MacroToolGUI._walk_widgets(child)
 
     def _build_ui(self):
         # --- Toolbar (recording + emergency stop only) ---
@@ -607,13 +715,15 @@ class MacroToolGUI:
 
         # Tab 3: Map
         self.map_tab = MapTab(notebook, memory_reader=self.memory_reader,
-                               log_callback=lambda msg: self.log.log(msg))
+                               log_callback=lambda msg: self.log.log(msg),
+                               skin=self.skin_name)
         notebook.add(self.map_tab, text="Map")
 
         # Tab 4: Settings
         settings_tab = ttk.Frame(notebook)
         notebook.add(settings_tab, text="Settings")
-        self.settings_panel = SettingsPanel(settings_tab, self.config)
+        self.settings_panel = SettingsPanel(settings_tab, self.config,
+                                            skin_changed=self._apply_skin)
         self.settings_panel.pack(fill="both", expand=True, padx=5, pady=5)
 
         # Tab 5: Game Info
